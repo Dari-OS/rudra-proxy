@@ -22,6 +22,7 @@ pub struct OllamaChatRequest {
     #[serde(default = "default_stream")]
     pub stream: Option<bool>,
     pub options: Option<OllamaOptions>,
+    pub tools: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -129,6 +130,7 @@ pub async fn chat(
         presence_penalty: opts.presence_penalty,
         frequency_penalty: opts.frequency_penalty,
         seed: opts.seed,
+        tools: payload.tools,
         ..Default::default()
     };
 
@@ -261,6 +263,9 @@ pub async fn chat(
         // Non-streaming mode
         let mut event_stream = response.bytes_stream().eventsource();
         let mut full_text = String::new();
+        let mut collected_tool_calls: std::collections::BTreeMap<usize, (String, String, String, String)> =
+            std::collections::BTreeMap::new();
+        let mut finish_reason = "stop";
 
         while let Some(event_res) = event_stream.next().await {
             if let Ok(event) = event_res {
@@ -270,19 +275,92 @@ pub async fn chat(
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&event.data) {
                     match model_meta.protocol {
                         ModelProtocol::Responses => {
-                            if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                full_text.push_str(delta);
+                            let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                            match event_type {
+                                "response.output_text.delta" => {
+                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
+                                        full_text.push_str(delta);
+                                    }
+                                }
+                                "response.output_item.added" => {
+                                    if let Some(item) = v.get("item") {
+                                        if item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
+                                            finish_reason = "tool_calls";
+                                            let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                                            let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
+                                            let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+                                            let args = item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
+                                            let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
+                                            if !call_id.is_empty() { entry.0 = call_id; }
+                                            if !name.is_empty() { entry.2 = name; }
+                                            if !args.is_empty() { entry.3.push_str(&args); }
+                                        }
+                                    }
+                                }
+                                "response.function_call_arguments.delta" => {
+                                    finish_reason = "tool_calls";
+                                    let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
+                                        let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
+                                        entry.3.push_str(delta);
+                                    }
+                                }
+                                "response.completed" => {
+                                    if let Some(resp_obj) = v.get("response") {
+                                        if let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
+                                            for (idx, out_item) in outputs.iter().enumerate() {
+                                                if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
+                                                    finish_reason = "tool_calls";
+                                                    let call_id = out_item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
+                                                    let name = out_item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+                                                    let args = out_item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
+                                                    let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
+                                                    if !call_id.is_empty() { entry.0 = call_id; }
+                                                    if !name.is_empty() { entry.2 = name; }
+                                                    if entry.3.is_empty() && !args.is_empty() { entry.3 = args; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                         ModelProtocol::ChatCompletions => {
                             if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
                                 for choice in choices {
-                                    if let Some(content) = choice
-                                        .get("delta")
-                                        .and_then(|d| d.get("content"))
-                                        .and_then(|c| c.as_str())
-                                    {
-                                        full_text.push_str(content);
+                                    if let Some(fr) = choice.get("finish_reason").and_then(|f| f.as_str()) {
+                                        if fr == "tool_calls" {
+                                            finish_reason = "tool_calls";
+                                        }
+                                    }
+                                    if let Some(delta_obj) = choice.get("delta") {
+                                        if let Some(content) =
+                                            delta_obj.get("content").and_then(|c| c.as_str())
+                                        {
+                                            full_text.push_str(content);
+                                        }
+                                        if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
+                                            finish_reason = "tool_calls";
+                                            for tc in tool_calls {
+                                                let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                                                let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
+                                                if let Some(id) = tc.get("id").and_then(|i| i.as_str()) {
+                                                    entry.0 = id.to_string();
+                                                }
+                                                if let Some(c_type) = tc.get("type").and_then(|t| t.as_str()) {
+                                                    entry.1 = c_type.to_string();
+                                                }
+                                                if let Some(func) = tc.get("function") {
+                                                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                                                        entry.2 = name.to_string();
+                                                    }
+                                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                        entry.3.push_str(args);
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -293,14 +371,34 @@ pub async fn chat(
             }
         }
 
+        let mut msg_obj = json!({
+            "role": "assistant",
+            "content": full_text
+        });
+
+        if !collected_tool_calls.is_empty() {
+            let ollama_tool_calls: Vec<Value> = collected_tool_calls
+                .into_values()
+                .map(|(_id, _type, name, args)| {
+                    let args_val = serde_json::from_str::<Value>(&args)
+                        .unwrap_or_else(|_| json!({}));
+                    json!({
+                        "function": {
+                            "name": name,
+                            "arguments": args_val
+                        }
+                    })
+                })
+                .collect();
+            msg_obj["tool_calls"] = json!(ollama_tool_calls);
+        }
+
         let resp_json = json!({
             "model": model_tag,
             "created_at": Utc::now().to_rfc3339(),
-            "message": {
-                "role": "assistant",
-                "content": full_text
-            },
+            "message": msg_obj,
             "done": true,
+            "done_reason": finish_reason,
             "total_duration": 1200000000u64,
             "prompt_eval_count": 10,
             "eval_count": 20

@@ -5,7 +5,10 @@ use rudra_proxy::registry::metadata::ModelProtocol;
 use rudra_proxy::registry::ModelRegistry;
 use rudra_proxy::routes::{create_router, AppState};
 use rudra_proxy::session::SessionManager;
-use rudra_proxy::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use rudra_proxy::upstream::payload::{
+    build_opencode_payload, make_openai_completion, make_openai_terminal_chunk,
+    make_openai_tool_chunk, OpenAiChatRequest,
+};
 use rudra_proxy::upstream::{ProxyPool, UpstreamClient};
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -456,3 +459,112 @@ fn test_config_cmd_overrides_and_aliases() {
     // Cleanup
     let _ = fs::remove_file(tmp_path);
 }
+
+#[tokio::test]
+async fn test_tool_calls_payload_injection_and_conversion() {
+    let client = reqwest::Client::new();
+    let config = AppConfig::load(make_test_cli_args());
+    let registry = ModelRegistry::new(client, &config);
+
+    let muse_meta = registry.resolve_model("muse-spark-1.3-contributor-free").await;
+
+    // Multi-turn conversation with assistant tool_calls and tool result
+    let req = OpenAiChatRequest {
+        model: "muse-spark-1.3-contributor-free".to_string(),
+        messages: vec![
+            json!({"role": "user", "content": "What is the weather?"}),
+            json!({
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_123",
+                        "type": "function",
+                        "function": {
+                            "name": "get_weather",
+                            "arguments": "{\"city\":\"Berlin\"}"
+                        }
+                    }
+                ]
+            }),
+            json!({
+                "role": "tool",
+                "tool_call_id": "call_123",
+                "content": "{\"temp\": 20}"
+            }),
+        ],
+        tools: Some(vec![json!({
+            "type": "function",
+            "name": "get_weather",
+            "description": "Get weather",
+            "parameters": {"type": "object", "properties": {"city": {"type": "string"}}}
+        })]),
+        tool_choice: Some(json!("auto")),
+        ..Default::default()
+    };
+
+    let payload = build_opencode_payload(&req, &muse_meta, None);
+
+    // Verify tools contain bash, read, AND get_weather
+    let tools = payload["tools"].as_array().expect("tools array");
+    assert!(tools.iter().any(|t| t["name"] == "bash"));
+    assert!(tools.iter().any(|t| t["name"] == "read"));
+    assert!(tools.iter().any(|t| t["name"] == "get_weather"));
+    assert_eq!(payload["tool_choice"], "auto");
+
+    // Verify Responses API input conversion
+    let input = payload["input"].as_array().expect("input array");
+    assert_eq!(input[0]["role"], "user");
+    assert_eq!(input[1]["type"], "function_call");
+    assert_eq!(input[1]["call_id"], "call_123");
+    assert_eq!(input[1]["name"], "get_weather");
+    assert_eq!(input[2]["type"], "function_call_output");
+    assert_eq!(input[2]["call_id"], "call_123");
+}
+
+#[test]
+fn test_make_openai_completion_with_tool_calls() {
+    let tool_calls = vec![json!({
+        "id": "call_abc123",
+        "type": "function",
+        "function": {
+            "name": "calc",
+            "arguments": "{\"expr\":\"2+2\"}"
+        }
+    })];
+
+    let completion = make_openai_completion(
+        "cmpl-1",
+        "mimo-v2.6-flash-free",
+        "",
+        None,
+        Some(tool_calls),
+        None,
+    );
+
+    assert_eq!(completion["choices"][0]["finish_reason"], "tool_calls");
+    assert_eq!(completion["choices"][0]["message"]["role"], "assistant");
+    assert!(completion["choices"][0]["message"]["content"].is_null());
+    assert_eq!(
+        completion["choices"][0]["message"]["tool_calls"][0]["id"],
+        "call_abc123"
+    );
+    assert_eq!(
+        completion["choices"][0]["message"]["tool_calls"][0]["function"]["name"],
+        "calc"
+    );
+}
+
+#[test]
+fn test_make_openai_tool_chunk_format() {
+    let chunk = make_openai_tool_chunk("cmpl-1", "mimo-v2.6-flash-free", 0, Some("call_999"), Some("bash"), Some("ls -la"));
+    assert!(chunk.starts_with("data: "));
+    assert!(chunk.contains("call_999"));
+    assert!(chunk.contains("bash"));
+    assert!(chunk.contains("ls -la"));
+
+    let terminal = make_openai_terminal_chunk("cmpl-1", "mimo-v2.6-flash-free", Some("tool_calls"));
+    assert!(terminal.contains("\"finish_reason\":\"tool_calls\""));
+    assert!(terminal.contains("data: [DONE]"));
+}
+

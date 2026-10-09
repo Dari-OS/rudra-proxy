@@ -77,6 +77,58 @@ fn default_model() -> String {
     "mimo-v2.6-flash-free".to_string()
 }
 
+/// Translates standard OpenAI messages (including tool calls and tool outputs)
+/// into the format required by the OpenAI Responses API (`/zen/v1/responses`).
+pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
+    let mut input = Vec::new();
+    for msg in messages {
+        let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("");
+        if role == "tool" {
+            let call_id = msg.get("tool_call_id").and_then(|id| id.as_str()).unwrap_or("");
+            let content = msg.get("content").cloned().unwrap_or(Value::String(String::new()));
+            let output_str = if let Some(s) = content.as_str() {
+                s.to_string()
+            } else {
+                content.to_string()
+            };
+            input.push(json!({
+                "type": "function_call_output",
+                "call_id": call_id,
+                "output": output_str
+            }));
+            continue;
+        }
+
+        if role == "assistant" {
+            if let Some(tool_calls) = msg.get("tool_calls").and_then(|t| t.as_array()) {
+                if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
+                    if !content.is_empty() {
+                        input.push(json!({
+                            "role": "assistant",
+                            "content": content
+                        }));
+                    }
+                }
+                for tc in tool_calls {
+                    let call_id = tc.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                    let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
+                    let arguments = tc.get("function").and_then(|f| f.get("arguments")).and_then(|a| a.as_str()).unwrap_or("");
+                    input.push(json!({
+                        "type": "function_call",
+                        "call_id": call_id,
+                        "name": name,
+                        "arguments": arguments
+                    }));
+                }
+                continue;
+            }
+        }
+
+        input.push(msg.clone());
+    }
+    input
+}
+
 /// Builds the OpenCode Zen request payload appropriate for the model's protocol,
 /// injecting mandatory dummy tools and proper reasoning configurations.
 pub fn build_opencode_payload(
@@ -113,9 +165,10 @@ pub fn build_opencode_payload(
                 }
             }
 
+            let converted_input = convert_messages_to_responses_input(&req.messages);
             let mut payload = json!({
                 "model": model.id,
-                "input": req.messages,
+                "input": converted_input,
                 "stream": true, // Zen gateway strictly requires stream: true
                 "tools": tools,
             });
@@ -262,8 +315,58 @@ pub fn make_openai_chunk(
     format!("data: {chunk}\n\n")
 }
 
+/// Creates an OpenAI `chat.completion.chunk` SSE event for streaming tool calls.
+pub fn make_openai_tool_chunk(
+    id: &str,
+    model: &str,
+    tool_call_index: usize,
+    call_id: Option<&str>,
+    function_name: Option<&str>,
+    function_arguments: Option<&str>,
+) -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut func_obj = json!({});
+    if let Some(name) = function_name {
+        func_obj["name"] = json!(name);
+    }
+    if let Some(args) = function_arguments {
+        func_obj["arguments"] = json!(args);
+    }
+
+    let mut tc_obj = json!({
+        "index": tool_call_index,
+        "function": func_obj
+    });
+    if let Some(cid) = call_id {
+        tc_obj["id"] = json!(cid);
+        tc_obj["type"] = json!("function");
+    }
+
+    let chunk = json!({
+        "id": id,
+        "object": "chat.completion.chunk",
+        "created": now,
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "delta": {
+                    "tool_calls": [tc_obj]
+                },
+                "finish_reason": null
+            }
+        ]
+    });
+
+    format!("data: {chunk}\n\n")
+}
+
 /// Creates the terminal OpenAI `chat.completion.chunk` SSE event string.
-pub fn make_openai_terminal_chunk(id: &str, model: &str) -> String {
+pub fn make_openai_terminal_chunk(id: &str, model: &str, finish_reason: Option<&str>) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -278,7 +381,7 @@ pub fn make_openai_terminal_chunk(id: &str, model: &str) -> String {
             {
                 "index": 0,
                 "delta": {},
-                "finish_reason": "stop"
+                "finish_reason": finish_reason.unwrap_or("stop")
             }
         ]
     });
@@ -292,6 +395,8 @@ pub fn make_openai_completion(
     model: &str,
     full_text: &str,
     reasoning: Option<&str>,
+    tool_calls: Option<Vec<Value>>,
+    finish_reason: Option<&str>,
 ) -> Value {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -299,14 +404,35 @@ pub fn make_openai_completion(
         .as_secs();
 
     let mut message = json!({
-        "role": "assistant",
-        "content": full_text
+        "role": "assistant"
     });
+
+    let has_tools = tool_calls.as_ref().map(|t| !t.is_empty()).unwrap_or(false);
+
+    if has_tools && full_text.is_empty() {
+        message["content"] = Value::Null;
+    } else {
+        message["content"] = json!(full_text);
+    }
 
     if let Some(r) = reasoning
         && !r.is_empty()
     {
         message["reasoning_content"] = json!(r);
+    }
+
+    let determined_finish = if let Some(fr) = finish_reason {
+        fr.to_string()
+    } else if has_tools {
+        "tool_calls".to_string()
+    } else {
+        "stop".to_string()
+    };
+
+    if let Some(tc) = tool_calls {
+        if !tc.is_empty() {
+            message["tool_calls"] = json!(tc);
+        }
     }
 
     json!({
@@ -318,7 +444,7 @@ pub fn make_openai_completion(
             {
                 "index": 0,
                 "message": message,
-                "finish_reason": "stop"
+                "finish_reason": determined_finish
             }
         ],
         "usage": {
