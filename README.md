@@ -187,19 +187,19 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 1650 ms |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 925 ms |
 | `exo-free` | exo | `chat_completions` | effort (1) | 1048k | error (410 Gone) | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 948 ms |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 375 ms |
 | `ling-3.0-flash-fin-free` | ling | `chat_completions` | toggle | 262k | error (400 Bad Request) | - |
-| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | error (429 Too Many Requests) | - |
-| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 2041 ms |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 2465 ms |
-| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 1161 ms |
-| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 1562 ms |
-| `nemotron-3-ultra-free` | nemotron-free | `chat_completions` | none | 1000k | online | 820 ms |
-| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 948 ms |
-| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 1186 ms |
-| `step-5-preview-free` | step | `chat_completions` | effort (3) | 1000k | online | 1594 ms |
+| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | online | 1071 ms |
+| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 1539 ms |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 5520 ms |
+| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 814 ms |
+| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 483 ms |
+| `nemotron-3-ultra-free` | nemotron-free | `chat_completions` | none | 1000k | online | 455 ms |
+| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 261 ms |
+| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 711 ms |
+| `step-5-preview-free` | step | `chat_completions` | effort (3) | 1000k | error (429 Too Many Requests) | - |
 <!-- MODEL_TABLE_END -->
 
 ---
