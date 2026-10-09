@@ -224,6 +224,39 @@ rudra run default "Explain how atomic operations work in Rust in 3 sentences."
 
 ---
 
+## Inference & Sampling Parameters
+
+Rudra implements the full OpenAI chat completion specification and seamlessly translates parameters across both standard LLMs and Responses API models:
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `temperature` | `float` | `null` (provider default) | Sampling temperature between `0.0` and `2.0`. Lower values are more deterministic. |
+| `top_p` | `float` | `null` | Nucleus sampling probability threshold (`0.0` to `1.0`). |
+| `max_tokens` | `integer` | `null` (unconstrained) | Upper bound on generated tokens. Model stops with `finish_reason: "length"`. |
+| `max_completion_tokens` | `integer` | `null` | Modern OpenAI replacement for `max_tokens` (takes priority when present). |
+| `stop` | `string` \| `string[]` | `null` | Stop sequence(s) where token generation halts with `finish_reason: "stop"`. |
+| `presence_penalty` | `float` | `0.0` | Penalizes new tokens based on presence in text (`-2.0` to `2.0`). |
+| `frequency_penalty` | `float` | `0.0` | Penalizes new tokens based on existing frequency (`-2.0` to `2.0`). |
+| `seed` | `integer` | `null` | Best-effort deterministic pseudo-random sampling seed. |
+| `response_format` | `object` | `null` | Enforces structured output format, such as `{"type": "json_object"}`. |
+| `reasoning_effort` | `string` | `null` | Constrains thinking effort (`minimal`, `low`, `medium`, `high`, `xhigh`). |
+| `tools` | `object[]` | `null` | Client-declared function schemas (automatically blended with gateway tools). |
+| `tool_choice` | `string` \| `object` | `null` | Controls tool selection behavior (`"auto"`, `"none"`, or specific tool). |
+| `user` | `string` | `null` | End-user identifier string for downstream tracking. |
+
+> **Protocol Note:** For `muse-*` models utilizing the OpenAI Responses API, Rudra automatically translates `max_tokens` / `max_completion_tokens` into `"max_output_tokens"` and guarantees the upstream minimum floor of `16` to prevent schema rejection.
+
+---
+
+## Interactive API Documentation (Scalar)
+
+When the server is running, an interactive API reference with live request samples in cURL, Python, and JavaScript is available directly in your browser:
+
+- **Interactive Scalar UI:** [`http://localhost:11434/docs`](http://localhost:11434/docs)
+- **OpenAPI 3.1 Specification:** [`http://localhost:11434/openapi.json`](http://localhost:11434/openapi.json)
+
+---
+
 ## CLI Reference
 
 The `rudra` binary provides operational subcommands for server hosting, diagnostic testing, model querying, and configuration management:
@@ -371,13 +404,22 @@ docker run -d \
 ```yaml
 services:
   rudra-proxy:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rudra-proxy:latest
+    pull_policy: build
     container_name: rudra-proxy
     restart: unless-stopped
     ports:
       - "11434:11434"
-    volumes:
-      - ./rudra.toml:/app/rudra.toml:ro
+    environment:
+      - RUDRA_HOST=0.0.0.0
+      - RUDRA_PORT=11434
+      - RUDRA_SYNC_INTERVAL_MINS=30
+    # Optional: mount custom configuration if created
+    # volumes:
+    #   - ./rudra.toml:/app/rudra.toml:ro
 ```
 
 ---

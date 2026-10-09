@@ -178,6 +178,39 @@ async fn test_routes_health_and_version() {
     let json: Value = serde_json::from_slice(&body).unwrap();
     assert!(json["models"].as_array().unwrap().len() >= 12);
 
+    // GET /docs (Scalar Documentation UI)
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/docs")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+    let html = String::from_utf8(body.to_vec()).unwrap();
+    assert!(html.contains("@scalar/api-reference"));
+
+    // GET /openapi.json
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/openapi.json")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+    let spec: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(spec["openapi"], "3.1.0");
+    assert!(spec["paths"]["/v1/chat/completions"].is_object());
+
     // GET /v1/models
     let response = app
         .clone()

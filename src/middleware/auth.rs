@@ -17,9 +17,9 @@ pub async fn auth_middleware(
         _ => return next.run(req).await,
     };
 
-    // Public health check routes
+    // Public health check and documentation routes
     let path = req.uri().path();
-    if path == "/" || path == "/health" {
+    if path == "/" || path == "/health" || path == "/docs" || path == "/openapi.json" {
         return next.run(req).await;
     }
 

@@ -1,3 +1,4 @@
+pub mod docs;
 pub mod health;
 pub mod ollama;
 pub mod openai;
@@ -46,6 +47,8 @@ pub fn create_router_with_cors(
     Router::new()
         .route("/", get(health::health_check))
         .route("/health", get(health::health_check))
+        .route("/docs", get(docs::scalar_docs_handler))
+        .route("/openapi.json", get(docs::openapi_spec_handler))
         // System One / TypeSafe AI evaluation endpoints (jev-*)
         .route("/v1/systemone", post(systemone::evaluate_systemone))
         .route("/v1/system-one", post(systemone::evaluate_systemone))
