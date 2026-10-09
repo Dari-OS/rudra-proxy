@@ -190,13 +190,25 @@ Configure Rudra in your project `opencode.json` (or global `~/.config/opencode/o
       },
       "models": {
         "step-5-preview-free": {
-          "name": "Step 5"
+          "name": "Step 5",
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" }
+          }
+        },
+        "muse-spark-1.3-contributor-free": {
+          "name": "Muse spark 1.3",
+          "variants": {
+            "minimal": { "reasoningEffort": "minimal" },
+            "low": { "reasoningEffort": "low" },
+            "medium": { "reasoningEffort": "medium" },
+            "high": { "reasoningEffort": "high" },
+            "xhigh": { "reasoningEffort": "xhigh" }
+          }
         },
         "mimo-v2.6-flash-free": {
           "name": "Mimo V2.6 flash"
-        },
-        "muse-spark-1.3-contributor-free": {
-          "name": "Muse spark 1.3"
         }
       }
     }
@@ -204,10 +216,10 @@ Configure Rudra in your project `opencode.json` (or global `~/.config/opencode/o
 }
 ```
 
-Run OpenCode with the configured model:
+Run OpenCode with the configured model (and optional reasoning variant):
 
 ```bash
-opencode --model rudra-proxy/step-5-preview-free
+opencode --model rudra-proxy/step-5-preview-free --variant high
 ```
 
 #### Hermes Agent
