@@ -30,7 +30,34 @@ jobs:
         run: |
           mkdir -p public
           ./target/release/rudra list --live --format json > public/status.json
+          ./target/release/rudra list --live --format markdown > table.md
           cat public/status.json
+
+      - name: Update README.md with Live Probed Model Catalog
+        run: |
+          python3 -c '
+          with open("table.md") as f:
+              table = f.read().strip()
+          with open("README.md") as f:
+              readme = f.read()
+          import re
+          updated = re.sub(
+              r"<!-- MODEL_TABLE_START -->[\s\S]*?<!-- MODEL_TABLE_END -->",
+              f"<!-- MODEL_TABLE_START -->\n{table}\n<!-- MODEL_TABLE_END -->",
+              readme
+          )
+          with open("README.md", "w") as f:
+              f.write(updated)
+          '
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --staged --quiet; then
+            echo "No changes in README model table"
+          else
+            git commit -m "docs: update live probed model catalog table [skip ci]"
+            git push origin main
+          fi
 
       - name: Generate Dashboard HTML
         run: |

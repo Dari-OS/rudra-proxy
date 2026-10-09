@@ -22,9 +22,9 @@
 
 # Rudra
 
-### Universal AI proxy bridge and drop-in replacement for OpenAI and Ollama APIs.
+### Universal AI proxy bridge routing to free frontier AI models for OpenAI and Ollama clients.
 
-**Keyless contributor tier access. 13 verified frontier models with up to 1M context. Zero configuration.**
+**Keyless contributor tier access. Verified frontier models with up to 1M context. Zero configuration.**
 
 [![Gateway](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.status&label=gateway&color=3fb950&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
 [![Active Models](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.models_count&label=models&color=58a6ff&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
@@ -35,22 +35,20 @@
 
 [Quickstart](#quickstart) · [Architecture](#architecture) · [Client Setup](#client-setup) · [Model Catalog](#model-catalog) · [CLI Reference](#cli-reference) · [Configuration](#configuration) · [Deployment](#deployment)
 
-<code>cargo run --release -- serve</code>
-
 </div>
 
 ---
 
-Rudra is a lightweight, high-performance proxy bridge written in Rust. It exposes OpenCode Zen's public contributor tier as a standard local daemon, acting as an authentication-free drop-in replacement for both OpenAI (`/v1`) and Ollama (`/api`) APIs.
+Rudra is a lightweight, high-performance proxy bridge written in Rust. It transparently routes standard OpenAI (`/v1`) and Ollama (`/api`) requests to OpenCode Zen's public contributor tier, providing keyless access to free frontier AI models without requiring API keys, paid accounts, or downstream code modifications.
 
-Downstream clients—including Open WebUI, Cursor, Continue.dev, Aider, Hermes, and the official OpenAI Python SDK—can access free cloud LLM compute without API keys, account credentials, or changes to client logic.
+Downstream clients—including Open WebUI, Cursor, Continue.dev, Aider, Hermes, and the official OpenAI Python SDK—can access free cloud LLM compute instantly.
 
 ### Core Capabilities
 
 - **Authentication-Free Inference:** Routes requests through OpenCode Zen's contributor tier without requiring personal API tokens or credit cards.
 - **Drop-in Wire Compatibility:** Exposes standard OpenAI Chat Completions, Responses API, Ollama (`/api/chat`, `/api/tags`, `/api/generate`), and TypeSafe AI System One decision endpoints.
 - **Automated Upstream Compliance:** Handles client header spoofing, computes valid timestamp-encoded `ses_...` session identifiers, injects mandatory dummy tools (`bash`, `read`), and forces upstream streaming.
-- **Dynamic Model Discovery:** Synchronizes active model manifests directly from OpenCode Zen with a local 13-model fallback catalog for offline reliability.
+- **Dynamic Model Discovery:** Synchronizes active model manifests directly from OpenCode Zen with an embedded baseline catalog for offline reliability.
 - **Outbound Proxy Pool:** Optional HTTP and SOCKS5 proxy chaining with atomic round-robin rotation, configurable request thresholds, and per-proxy quotas.
 - **Reasoning Effort Control:** Maps downstream reasoning configurations to upstream models, supporting discrete effort levels, boolean toggles, and interleaved thought extraction.
 
@@ -131,7 +129,7 @@ Because Rudra implements standard OpenAI and Ollama protocol interfaces, downstr
 
 1. Open **Settings** > **Connections**.
 2. Under **Ollama API**, ensure the base URL is set to `http://localhost:11434` (or `http://host.docker.internal:11434` when running Open WebUI in a container).
-3. Save settings. All 13 models populate the model selection interface automatically.
+3. Save settings. All active models populate the model selection interface automatically.
 
 ### Cursor / Continue.dev / Windsurf
 
@@ -184,23 +182,25 @@ rudra run default "Explain how atomic operations work in Rust in 3 sentences."
 
 ## Model Catalog
 
-The proxy includes 13 verified, active models out of the box:
+The catalog below is dynamically monitored by our CI/CD healthcheck worker, sending live inference test prompts to verify responsiveness and record real response latencies:
 
-| Model Identifier | Provider | Upstream Protocol | Context Window | Primary Use Case |
-| :--- | :--- | :--- | :--- | :--- |
-| `muse-spark-1.3-contributor-free` | Muse | Responses | 1,048,576 tokens | High-context repository refactoring and document analysis |
-| `muse-spark-1.2-contributor-free` | Muse | Responses | 1,048,576 tokens | Extended context reasoning with configurable effort |
-| `mimo-v2.6-flash-free` | Mimo | Chat | 262,144 tokens | Low-latency coding, agent execution, default alias target |
-| `nemotron-3-ultra-free` | NVIDIA | Chat | 131,072 tokens | Complex logic, mathematics, interleaved reasoning traces |
-| `nemotron-3.5-lightning-free` | NVIDIA | Chat | 131,072 tokens | High-throughput instruction following and code generation |
-| `space-bunny-free` | BunnyAI | Chat | 131,072 tokens | Configurable reasoning effort (`low` to `xhigh`) |
-| `step-5-preview-free` | Step | Chat | 131,072 tokens | Multistep problem solving and structured generation |
-| `exo-free` | Exo | Chat | 131,072 tokens | Deep reasoning with enforcement of high effort |
-| `longcat-2.5-preview-free` | LongCat | Chat | 262,144 tokens | Long-context dialogue and document synthesis |
-| `ling-3.0-flash-fin-free` | Ling | Chat | 131,072 tokens | Fast reasoning with financial and domain specialization |
-| `ling-3.1-flash-free` | Ling | Chat | 131,072 tokens | Low-latency general conversation and instruction tasks |
-| `jev-1.13-free` | TypeSafe AI | System One | 131,072 tokens | Structured state analysis, scoring, and decision matrices |
-| `jev-1.13` | TypeSafe AI | System One | 131,072 tokens | Production System One decision evaluation engine |
+<!-- MODEL_TABLE_START -->
+| Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 1650 ms |
+| `exo-free` | exo | `chat_completions` | effort (1) | 1048k | error (410 Gone) | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 948 ms |
+| `ling-3.0-flash-fin-free` | ling | `chat_completions` | toggle | 262k | error (400 Bad Request) | - |
+| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | error (429 Too Many Requests) | - |
+| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 2041 ms |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 2465 ms |
+| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 1161 ms |
+| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 1562 ms |
+| `nemotron-3-ultra-free` | nemotron-free | `chat_completions` | none | 1000k | online | 820 ms |
+| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 948 ms |
+| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 1186 ms |
+| `step-5-preview-free` | step | `chat_completions` | effort (3) | 1000k | online | 1594 ms |
+<!-- MODEL_TABLE_END -->
 
 ---
 

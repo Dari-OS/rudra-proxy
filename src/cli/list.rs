@@ -120,7 +120,7 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
     let config = AppConfig::load(cli_copy);
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
         .build()?;
 
     let (models, catalog_synced): (HashMap<String, ModelMetadata>, bool) = if args.live {
@@ -214,21 +214,19 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         ListFormat::Markdown => {
-            println!("# Rudra Active Models");
-            println!();
             println!(
-                "| Model ID | Provider | Protocol | Reasoning | Context | Status | Latency |"
+                "| Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency |"
             );
             println!(
-                "|---|---|---|---|---|---|---|"
+                "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
             );
             for m in &model_list {
                 let latency_display = m
                     .latency_ms
-                    .map(|l| format!("{l}ms"))
+                    .map(|l| format!("{l} ms"))
                     .unwrap_or_else(|| "-".to_string());
                 println!(
-                    "| `{}` | {} | {} | {} | {}k | {} | {} |",
+                    "| `{}` | {} | `{}` | {} | {}k | {} | {} |",
                     m.id,
                     m.provider,
                     m.protocol,
