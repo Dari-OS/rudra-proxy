@@ -1,0 +1,151 @@
+{
+  "updated_at": "2026-10-09T01:25:01.104178143+00:00",
+  "status": "operational",
+  "gateway": "https://opencode.ai/zen/v1/models",
+  "models_count": 13,
+  "models": [
+    {
+      "id": "big-pickle",
+      "name": "Big Pickle",
+      "provider": "big-pickle",
+      "protocol": "chat_completions",
+      "reasoning": "none",
+      "context_limit": 200000,
+      "output_limit": 32000,
+      "status": "online",
+      "latency_ms": 962
+    },
+    {
+      "id": "exo-free",
+      "name": "Exo Free",
+      "provider": "exo",
+      "protocol": "chat_completions",
+      "reasoning": "effort (1)",
+      "context_limit": 1048576,
+      "output_limit": 131072,
+      "status": "error (410 Gone)",
+      "latency_ms": null
+    },
+    {
+      "id": "jev-1.13-free",
+      "name": "jev-1.13-free",
+      "provider": "jev",
+      "protocol": "systemone",
+      "reasoning": "none",
+      "context_limit": 131072,
+      "output_limit": 16384,
+      "status": "online",
+      "latency_ms": 383
+    },
+    {
+      "id": "ling-3.0-flash-fin-free",
+      "name": "Ling 3.0 Flash Fin Free",
+      "provider": "ling",
+      "protocol": "chat_completions",
+      "reasoning": "toggle",
+      "context_limit": 262144,
+      "output_limit": 32768,
+      "status": "error (400 Bad Request)",
+      "latency_ms": null
+    },
+    {
+      "id": "ling-3.1-flash-free",
+      "name": "Ling 3.1 Flash Free",
+      "provider": "ling",
+      "protocol": "chat_completions",
+      "reasoning": "toggle",
+      "context_limit": 262144,
+      "output_limit": 32768,
+      "status": "online",
+      "latency_ms": 1034
+    },
+    {
+      "id": "longcat-2.5-preview-free",
+      "name": "LongCat 2.5 Preview Free",
+      "provider": "longcat",
+      "protocol": "chat_completions",
+      "reasoning": "toggle",
+      "context_limit": 1000000,
+      "output_limit": 131072,
+      "status": "online",
+      "latency_ms": 6401
+    },
+    {
+      "id": "mimo-v2.6-flash-free",
+      "name": "MiMo-V2.6-Flash Free",
+      "provider": "mimo",
+      "protocol": "chat_completions",
+      "reasoning": "none",
+      "context_limit": 200000,
+      "output_limit": 32000,
+      "status": "online",
+      "latency_ms": 1655
+    },
+    {
+      "id": "muse-spark-1.2-contributor-free",
+      "name": "Muse Spark 1.2 Free",
+      "provider": "muse-free",
+      "protocol": "responses",
+      "reasoning": "effort (5)",
+      "context_limit": 1048576,
+      "output_limit": 131072,
+      "status": "online",
+      "latency_ms": 638
+    },
+    {
+      "id": "muse-spark-1.3-contributor-free",
+      "name": "Muse Spark 1.3 Free",
+      "provider": "muse-free",
+      "protocol": "responses",
+      "reasoning": "effort (5)",
+      "context_limit": 1048576,
+      "output_limit": 131072,
+      "status": "online",
+      "latency_ms": 529
+    },
+    {
+      "id": "nemotron-3-ultra-free",
+      "name": "Nemotron 3 Ultra Free",
+      "provider": "nemotron-free",
+      "protocol": "chat_completions",
+      "reasoning": "none",
+      "context_limit": 1000000,
+      "output_limit": 128000,
+      "status": "online",
+      "latency_ms": 470
+    },
+    {
+      "id": "nemotron-3.5-lightning-free",
+      "name": "Nemotron 3.5 Lightning Free",
+      "provider": "nemotron-free",
+      "protocol": "chat_completions",
+      "reasoning": "none",
+      "context_limit": 262144,
+      "output_limit": 262144,
+      "status": "online",
+      "latency_ms": 533
+    },
+    {
+      "id": "space-bunny-free",
+      "name": "Space Bunny Free",
+      "provider": "space-bunny",
+      "protocol": "chat_completions",
+      "reasoning": "effort (5)",
+      "context_limit": 1048576,
+      "output_limit": 524288,
+      "status": "online",
+      "latency_ms": 482
+    },
+    {
+      "id": "step-5-preview-free",
+      "name": "Step 5 Preview Free",
+      "provider": "step",
+      "protocol": "chat_completions",
+      "reasoning": "effort (3)",
+      "context_limit": 1000000,
+      "output_limit": 65536,
+      "status": "offline",
+      "latency_ms": null
+    }
+  ]
+}
