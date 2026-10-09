@@ -103,22 +103,19 @@ pub async fn generate(
     }
     messages.push(json!({ "role": "user", "content": payload.prompt }));
 
-    let (temp, top_p, max_tokens) = match payload.options {
-        Some(opts) => (opts.temperature, opts.top_p, opts.num_predict),
-        None => (None, None, None),
-    };
-
+    let opts = payload.options.unwrap_or_default();
     let openai_req = OpenAiChatRequest {
         model: model_meta.id.clone(),
         messages,
         stream: true,
-        temperature: temp,
-        top_p,
-        max_tokens,
-        reasoning_effort: None,
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        temperature: opts.temperature,
+        top_p: opts.top_p,
+        max_tokens: opts.num_predict,
+        stop: opts.stop,
+        presence_penalty: opts.presence_penalty,
+        frequency_penalty: opts.frequency_penalty,
+        seed: opts.seed,
+        ..Default::default()
     };
 
     let override_effort = state.registry.get_override_effort(&model_meta.id);

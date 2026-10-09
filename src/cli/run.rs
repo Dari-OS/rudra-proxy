@@ -229,12 +229,8 @@ async fn send_and_stream(
         messages: messages.to_vec(),
         stream: true,
         temperature,
-        top_p: None,
-        max_tokens: None,
         reasoning_effort: reasoning_effort.map(|s| s.to_string()),
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
 
     let payload = build_opencode_payload(&chat_req, model_meta, reasoning_effort);

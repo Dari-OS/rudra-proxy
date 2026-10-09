@@ -56,12 +56,8 @@ pub async fn execute(args: BenchArgs) -> Result<(), Box<dyn std::error::Error>> 
         })],
         stream: true,
         temperature: Some(0.7),
-        top_p: None,
         max_tokens: Some(512),
-        reasoning_effort: None,
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
 
     let payload = build_opencode_payload(&chat_req, &model_meta, None);

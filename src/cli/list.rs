@@ -91,12 +91,7 @@ async fn probe_single_model(
             })],
             stream: true,
             temperature: Some(0.1),
-            top_p: None,
-            max_tokens: None,
-            reasoning_effort: None,
-            tools: None,
-            tool_choice: None,
-            extra: serde_json::Map::new(),
+            ..Default::default()
         };
         let payload = build_opencode_payload(&chat_req, model, None);
         match upstream_client.dispatch(model.protocol, &session_id, &payload).await {

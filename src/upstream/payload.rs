@@ -19,6 +19,20 @@ pub struct OpenAiChatRequest {
     #[serde(default)]
     pub max_tokens: Option<i64>,
     #[serde(default)]
+    pub max_completion_tokens: Option<i64>,
+    #[serde(default)]
+    pub stop: Option<Value>,
+    #[serde(default)]
+    pub presence_penalty: Option<f64>,
+    #[serde(default)]
+    pub frequency_penalty: Option<f64>,
+    #[serde(default)]
+    pub seed: Option<i64>,
+    #[serde(default)]
+    pub response_format: Option<Value>,
+    #[serde(default)]
+    pub user: Option<String>,
+    #[serde(default)]
     pub reasoning_effort: Option<String>,
     #[serde(default)]
     pub tools: Option<Vec<Value>>,
@@ -26,6 +40,37 @@ pub struct OpenAiChatRequest {
     pub tool_choice: Option<Value>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+impl Default for OpenAiChatRequest {
+    fn default() -> Self {
+        Self {
+            model: default_model(),
+            messages: Vec::new(),
+            stream: false,
+            temperature: None,
+            top_p: None,
+            max_tokens: None,
+            max_completion_tokens: None,
+            stop: None,
+            presence_penalty: None,
+            frequency_penalty: None,
+            seed: None,
+            response_format: None,
+            user: None,
+            reasoning_effort: None,
+            tools: None,
+            tool_choice: None,
+            extra: Map::new(),
+        }
+    }
+}
+
+impl OpenAiChatRequest {
+    /// Returns the effective output token limit (`max_completion_tokens` or `max_tokens`).
+    pub fn max_tokens_limit(&self) -> Option<i64> {
+        self.max_completion_tokens.or(self.max_tokens)
+    }
 }
 
 fn default_model() -> String {
@@ -81,8 +126,16 @@ pub fn build_opencode_payload(
             if let Some(top_p) = req.top_p {
                 payload["top_p"] = json!(top_p);
             }
-            if let Some(max) = req.max_tokens {
-                payload["max_tokens"] = json!(max);
+            // OpenAI Responses API protocol specifies max_output_tokens, and upstream requires >= 16
+            if let Some(max) = req.max_tokens_limit() {
+                let clamped_max = max.max(16);
+                payload["max_output_tokens"] = json!(clamped_max);
+            }
+            if let Some(ref choice) = req.tool_choice {
+                payload["tool_choice"] = choice.clone();
+            }
+            if let Some(ref user) = req.user {
+                payload["user"] = json!(user);
             }
 
             apply_reasoning(&mut payload, model, client_effort, override_effort);
@@ -134,8 +187,29 @@ pub fn build_opencode_payload(
             if let Some(top_p) = req.top_p {
                 payload["top_p"] = json!(top_p);
             }
-            if let Some(max) = req.max_tokens {
+            if let Some(max) = req.max_tokens_limit() {
                 payload["max_tokens"] = json!(max);
+            }
+            if let Some(ref stop) = req.stop {
+                payload["stop"] = stop.clone();
+            }
+            if let Some(presence) = req.presence_penalty {
+                payload["presence_penalty"] = json!(presence);
+            }
+            if let Some(frequency) = req.frequency_penalty {
+                payload["frequency_penalty"] = json!(frequency);
+            }
+            if let Some(seed) = req.seed {
+                payload["seed"] = json!(seed);
+            }
+            if let Some(ref format) = req.response_format {
+                payload["response_format"] = format.clone();
+            }
+            if let Some(ref choice) = req.tool_choice {
+                payload["tool_choice"] = choice.clone();
+            }
+            if let Some(ref user) = req.user {
+                payload["user"] = json!(user);
             }
 
             apply_reasoning(&mut payload, model, client_effort, override_effort);

@@ -55,12 +55,9 @@ async fn test_payload_builder_dummy_tools_and_streaming() {
         messages: vec![json!({"role": "user", "content": "hello"})],
         stream: false, // client requests false
         temperature: Some(0.7),
-        top_p: None,
-        max_tokens: None,
+        max_completion_tokens: Some(8), // should be clamped to 16 for Responses API
         reasoning_effort: Some("high".to_string()),
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
 
     let payload = build_opencode_payload(&req, &muse_meta, None);
@@ -74,20 +71,24 @@ async fn test_payload_builder_dummy_tools_and_streaming() {
     assert!(tools.iter().any(|t| t["name"] == "read"));
     // Reasoning effort formatted as reasoning: { effort: "high" }
     assert_eq!(payload["reasoning"]["effort"], "high");
+    // max_completion_tokens translated to max_output_tokens with floor of 16
+    assert_eq!(payload["max_output_tokens"], 16);
 
-    // 2. Chat Completions API payload
+    // 2. Chat Completions API payload with advanced parameters
     let mimo_meta = registry.resolve_model("mimo-v2.6-flash-free").await;
     let mimo_req = OpenAiChatRequest {
         model: "mimo-v2.6-flash-free".to_string(),
         messages: vec![json!({"role": "user", "content": "ping"})],
         stream: false,
-        temperature: None,
-        top_p: None,
-        max_tokens: None,
-        reasoning_effort: None,
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        temperature: Some(0.3),
+        top_p: Some(0.9),
+        max_tokens: Some(150),
+        stop: Some(json!(["STOP", "END"])),
+        presence_penalty: Some(0.4),
+        frequency_penalty: Some(0.6),
+        seed: Some(12345),
+        response_format: Some(json!({"type": "json_object"})),
+        ..Default::default()
     };
 
     let mimo_payload = build_opencode_payload(&mimo_req, &mimo_meta, None);
@@ -96,6 +97,15 @@ async fn test_payload_builder_dummy_tools_and_streaming() {
     let mimo_tools = mimo_payload["tools"].as_array().expect("tools array");
     assert!(mimo_tools.iter().any(|t| t["function"]["name"] == "bash"));
     assert!(mimo_tools.iter().any(|t| t["function"]["name"] == "read"));
+    // Parameters forwarded
+    assert_eq!(mimo_payload["temperature"], 0.3);
+    assert_eq!(mimo_payload["top_p"], 0.9);
+    assert_eq!(mimo_payload["max_tokens"], 150);
+    assert_eq!(mimo_payload["stop"], json!(["STOP", "END"]));
+    assert_eq!(mimo_payload["presence_penalty"], 0.4);
+    assert_eq!(mimo_payload["frequency_penalty"], 0.6);
+    assert_eq!(mimo_payload["seed"], 12345);
+    assert_eq!(mimo_payload["response_format"], json!({"type": "json_object"}));
     // mimo-v2.6-flash-free uses interleaved reasoning, no reasoning_effort parameter should be injected
     assert!(mimo_payload.get("reasoning_effort").is_none());
 }
@@ -317,13 +327,8 @@ async fn test_reasoning_effort_clamping_and_chat_resolution() {
         model: muse.id.clone(),
         messages: vec![json!({"role": "user", "content": "test"})],
         stream: true,
-        temperature: None,
-        top_p: None,
-        max_tokens: None,
         reasoning_effort: Some("min".to_string()),
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
     let payload_min = build_opencode_payload(&req_min, &muse, None);
     assert_eq!(payload_min["reasoning"]["effort"], "minimal");
@@ -341,13 +346,8 @@ async fn test_reasoning_effort_clamping_and_chat_resolution() {
         model: bunny.id.clone(),
         messages: vec![json!({"role": "user", "content": "test"})],
         stream: true,
-        temperature: None,
-        top_p: None,
-        max_tokens: None,
         reasoning_effort: Some("high".to_string()),
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
     let payload_bunny = build_opencode_payload(&req_bunny, &bunny, None);
     assert_eq!(payload_bunny["reasoning_effort"], "high");
@@ -362,13 +362,8 @@ async fn test_reasoning_effort_clamping_and_chat_resolution() {
         model: mimo.id.clone(),
         messages: vec![json!({"role": "user", "content": "test"})],
         stream: true,
-        temperature: None,
-        top_p: None,
-        max_tokens: None,
         reasoning_effort: Some("high".to_string()),
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        ..Default::default()
     };
     let payload_mimo = build_opencode_payload(&req_mimo, &mimo, None);
     assert!(payload_mimo.get("reasoning_effort").is_none());

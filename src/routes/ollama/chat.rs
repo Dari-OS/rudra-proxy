@@ -24,11 +24,15 @@ pub struct OllamaChatRequest {
     pub options: Option<OllamaOptions>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct OllamaOptions {
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
     pub num_predict: Option<i64>,
+    pub stop: Option<Value>,
+    pub presence_penalty: Option<f64>,
+    pub frequency_penalty: Option<f64>,
+    pub seed: Option<i64>,
 }
 
 fn default_stream() -> Option<bool> {
@@ -113,23 +117,19 @@ pub async fn chat(
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response());
     }
 
-    // Convert Ollama options to standard params
-    let (temp, top_p, max_tokens) = match payload.options {
-        Some(opts) => (opts.temperature, opts.top_p, opts.num_predict),
-        None => (None, None, None),
-    };
-
+    let opts = payload.options.unwrap_or_default();
     let openai_req = OpenAiChatRequest {
         model: model_meta.id.clone(),
         messages: payload.messages,
         stream: true,
-        temperature: temp,
-        top_p,
-        max_tokens,
-        reasoning_effort: None,
-        tools: None,
-        tool_choice: None,
-        extra: serde_json::Map::new(),
+        temperature: opts.temperature,
+        top_p: opts.top_p,
+        max_tokens: opts.num_predict,
+        stop: opts.stop,
+        presence_penalty: opts.presence_penalty,
+        frequency_penalty: opts.frequency_penalty,
+        seed: opts.seed,
+        ..Default::default()
     };
 
     let override_effort = state.registry.get_override_effort(&model_meta.id);
