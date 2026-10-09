@@ -8,6 +8,7 @@ use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use serde_json::Value;
 use std::io::{self, Write};
+use std::time::Instant;
 
 pub async fn execute(args: RunArgs) -> Result<(), Box<dyn std::error::Error>> {
     let mut cli_copy = CliArgs {
@@ -165,6 +166,8 @@ async fn send_and_stream(
     temperature: Option<f64>,
     reasoning_effort: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error>> {
+    let start_total = Instant::now();
+
     if model_meta.protocol == crate::registry::metadata::ModelProtocol::SystemOne {
         let user_query = messages
             .last()
@@ -196,6 +199,22 @@ async fn send_and_stream(
             let formatted = serde_json::to_string_pretty(&body)?;
             print!("{formatted}");
             io::stdout().flush()?;
+            let total_elapsed = start_total.elapsed();
+            let total_secs = total_elapsed.as_secs_f64();
+            let out_tokens = body
+                .get("usage")
+                .and_then(|u| u.get("output_tokens"))
+                .and_then(|t| t.as_u64())
+                .unwrap_or(20);
+            let tps = if total_secs > 0.0 {
+                out_tokens as f64 / total_secs
+            } else {
+                0.0
+            };
+            println!(
+                "\n\x1b[90m[{out_tokens} tokens | {:.1} tok/s | {:.2}s]\x1b[0m",
+                tps, total_secs
+            );
             return Ok(formatted);
         } else {
             let status = res.status();
@@ -241,6 +260,9 @@ async fn send_and_stream(
     let byte_stream = response.bytes_stream();
     let mut event_stream = byte_stream.eventsource();
     let mut full_response = String::new();
+    let mut ttft: Option<u128> = None;
+    let mut token_chunks = 0usize;
+    let mut generated_chars = 0usize;
 
     while let Some(event_res) = event_stream.next().await {
         match event_res {
@@ -253,6 +275,11 @@ async fn send_and_stream(
                         if let Some(first) = choices.first() {
                             if let Some(delta) = first.get("delta") {
                                 if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                                    if ttft.is_none() {
+                                        ttft = Some(start_total.elapsed().as_millis());
+                                    }
+                                    token_chunks += 1;
+                                    generated_chars += content.len();
                                     print!("{content}");
                                     io::stdout().flush()?;
                                     full_response.push_str(content);
@@ -261,11 +288,21 @@ async fn send_and_stream(
                         }
                     } else if json.get("type").and_then(|t| t.as_str()) == Some("response.output_text.delta") {
                         if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
+                            if ttft.is_none() {
+                                ttft = Some(start_total.elapsed().as_millis());
+                            }
+                            token_chunks += 1;
+                            generated_chars += delta.len();
                             print!("{delta}");
                             io::stdout().flush()?;
                             full_response.push_str(delta);
                         }
                     } else if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
+                        if ttft.is_none() {
+                            ttft = Some(start_total.elapsed().as_millis());
+                        }
+                        token_chunks += 1;
+                        generated_chars += delta.len();
                         print!("{delta}");
                         io::stdout().flush()?;
                         full_response.push_str(delta);
@@ -274,6 +311,26 @@ async fn send_and_stream(
             }
             Err(_) => break,
         }
+    }
+
+    let total_elapsed = start_total.elapsed();
+    let ttft_ms = ttft.unwrap_or(0);
+    let approx_tokens = token_chunks.max((generated_chars + 3) / 4);
+    let gen_duration = (total_elapsed.as_millis().saturating_sub(ttft_ms) as f64) / 1000.0;
+    let tps = if gen_duration > 0.02 {
+        approx_tokens as f64 / gen_duration
+    } else if total_elapsed.as_secs_f64() > 0.0 {
+        approx_tokens as f64 / total_elapsed.as_secs_f64()
+    } else {
+        0.0
+    };
+
+    if approx_tokens > 0 {
+        println!(
+            "\n\x1b[90m[{approx_tokens} tokens | {:.1} tok/s | TTFT: {ttft_ms}ms | Total: {:.2}s]\x1b[0m",
+            tps,
+            total_elapsed.as_secs_f64()
+        );
     }
 
     Ok(full_response)

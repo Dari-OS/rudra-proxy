@@ -26,14 +26,14 @@
 
 **Keyless contributor tier access. Verified frontier models with up to 1M context. Zero configuration.**
 
-[![Gateway](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.status&label=gateway&color=3fb950&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
-[![Active Models](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.models_count&label=models&color=58a6ff&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
+[![Gateway](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FDari-OS%2Frudra-proxy%2Fgh-pages%2Fstatus.json&query=%24.status&label=gateway&color=3fb950&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
+[![Active Models](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FDari-OS%2Frudra-proxy%2Fgh-pages%2Fstatus.json&query=%24.models_count&label=models&color=58a6ff&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
 [![CI](https://img.shields.io/github/actions/workflow/status/dari-os/rudra-proxy/healthcheck.yml?branch=main&label=ci&style=flat-square)](https://github.com/dari-os/rudra-proxy/actions/workflows/healthcheck.yml)
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B-dea584?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Default Port](https://img.shields.io/badge/port-11434-79c0ff?style=flat-square)](https://ollama.com/)
 [![License MIT](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
 
-[Quickstart](#quickstart) · [Architecture](#architecture) · [Client Setup](#client-setup) · [Model Catalog](#model-catalog) · [CLI Reference](#cli-reference) · [Configuration](#configuration) · [Deployment](#deployment)
+[Model Catalog](#model-catalog) · [Quickstart](#quickstart) · [Architecture](#architecture) · [Client Setup](#client-setup) · [CLI Reference](#cli-reference) · [Configuration](#configuration) · [Deployment](#deployment)
 
 </div>
 
@@ -51,6 +51,30 @@ Downstream clients—including Open WebUI, Cursor, Continue.dev, Aider, Hermes, 
 - **Dynamic Model Discovery:** Synchronizes active model manifests directly from OpenCode Zen with an embedded baseline catalog for offline reliability.
 - **Outbound Proxy Pool:** Optional HTTP and SOCKS5 proxy chaining with atomic round-robin rotation, configurable request thresholds, and per-proxy quotas.
 - **Reasoning Effort Control:** Maps downstream reasoning configurations to upstream models, supporting discrete effort levels, boolean toggles, and interleaved thought extraction.
+
+---
+
+## Model Catalog
+
+The catalog below is dynamically monitored by our CI/CD healthcheck worker, sending live inference test prompts to verify responsiveness and record real response latencies and generation speed:
+
+<!-- MODEL_TABLE_START -->
+| Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 925 ms | - |
+| `exo-free` | exo | `chat_completions` | effort (1) | 1048k | error (410 Gone) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 375 ms | 53.3 tok/s |
+| `ling-3.0-flash-fin-free` | ling | `chat_completions` | toggle | 262k | error (400 Bad Request) | - | - |
+| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | online | 1071 ms | - |
+| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 1539 ms | - |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 5520 ms | 42.0 tok/s |
+| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 814 ms | - |
+| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 483 ms | - |
+| `nemotron-3-ultra-free` | nemotron-free | `chat_completions` | none | 1000k | online | 455 ms | - |
+| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 261 ms | - |
+| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 711 ms | - |
+| `step-5-preview-free` | step | `chat_completions` | effort (3) | 1000k | error (429 Too Many Requests) | - | - |
+<!-- MODEL_TABLE_END -->
 
 ---
 
@@ -177,30 +201,6 @@ rudra run default
 # One-shot command line evaluation
 rudra run default "Explain how atomic operations work in Rust in 3 sentences."
 ```
-
----
-
-## Model Catalog
-
-The catalog below is dynamically monitored by our CI/CD healthcheck worker, sending live inference test prompts to verify responsiveness and record real response latencies:
-
-<!-- MODEL_TABLE_START -->
-| Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 925 ms |
-| `exo-free` | exo | `chat_completions` | effort (1) | 1048k | error (410 Gone) | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 375 ms |
-| `ling-3.0-flash-fin-free` | ling | `chat_completions` | toggle | 262k | error (400 Bad Request) | - |
-| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | online | 1071 ms |
-| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 1539 ms |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 5520 ms |
-| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 814 ms |
-| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 483 ms |
-| `nemotron-3-ultra-free` | nemotron-free | `chat_completions` | none | 1000k | online | 455 ms |
-| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 261 ms |
-| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 711 ms |
-| `step-5-preview-free` | step | `chat_completions` | effort (3) | 1000k | error (429 Too Many Requests) | - |
-<!-- MODEL_TABLE_END -->
 
 ---
 

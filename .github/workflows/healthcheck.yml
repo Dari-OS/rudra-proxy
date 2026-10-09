@@ -217,10 +217,11 @@ jobs:
                     <th>Context Limit</th>
                     <th>Status</th>
                     <th>Latency</th>
+                    <th>Speed</th>
                   </tr>
                 </thead>
                 <tbody id="models-body">
-                  <tr><td colspan="7" style="text-align:center; padding: 30px;">Loading live telemetry...</td></tr>
+                  <tr><td colspan="8" style="text-align:center; padding: 30px;">Loading live telemetry...</td></tr>
                 </tbody>
               </table>
 
@@ -239,6 +240,7 @@ jobs:
                   data.models.forEach(m => {
                     const row = document.createElement('tr');
                     const latency = m.latency_ms ? `${m.latency_ms} ms` : '-';
+                    const speed = m.tokens_per_sec ? `${m.tokens_per_sec} tok/s` : '-';
                     const isOnline = m.status === 'online';
                     const statusColor = isOnline ? 'var(--online)' : '#f85149';
                     row.innerHTML = `
@@ -249,12 +251,13 @@ jobs:
                       <td>${Math.round(m.context_limit / 1000)}k</td>
                       <td><span style="color: ${statusColor}; font-weight: 500;">● ${m.status}</span></td>
                       <td style="font-family: monospace;">${latency}</td>
+                      <td style="font-family: monospace;">${speed}</td>
                     `;
                     tbody.appendChild(row);
                   });
                 })
                 .catch(err => {
-                  document.getElementById('models-body').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Failed to load status.json: ${err}</td></tr>`;
+                  document.getElementById('models-body').innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Failed to load status.json: ${err}</td></tr>`;
                 });
             </script>
           </body>
