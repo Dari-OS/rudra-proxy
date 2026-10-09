@@ -1,0 +1,35 @@
+[package]
+name = "rudra-proxy"
+version = "0.1.0"
+edition = "2024"
+description = "Universal AI Proxy Bridge & Drop-in Replacement for OpenCode Zen (OpenAI & Ollama API Compatible)"
+
+[dependencies]
+tokio = { version = "1.43", features = ["full"] }
+axum = { version = "0.8", features = ["macros"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "socks"] }
+futures = "0.3"
+eventsource-stream = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+rand = "0.8"
+thiserror = "2.0"
+tokio-stream = "0.1"
+clap = { version = "4.5", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+[[bin]]
+name = "rudra"
+path = "src/main.rs"
+
+[[bin]]
+name = "rudra-proxy"
+path = "src/bin/rudra_proxy.rs"

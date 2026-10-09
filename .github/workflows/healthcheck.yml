@@ -1,0 +1,242 @@
+name: Daily Upstream Healthcheck
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  healthcheck:
+    name: Probe Upstream & Publish Status
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Rudra Release Binary
+        run: cargo build --release --bin rudra
+
+      - name: Probe Upstream OpenCode Zen Gateway
+        run: |
+          mkdir -p public
+          ./target/release/rudra list --live --format json > public/status.json
+          cat public/status.json
+
+      - name: Generate Dashboard HTML
+        run: |
+          cat << 'EOF' > public/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Rudra Proxy — Live Model Status</title>
+            <style>
+              :root {
+                --bg: #0d1117;
+                --surface: #161b22;
+                --border: #30363d;
+                --text: #e6edf3;
+                --text-muted: #8b949e;
+                --accent: #58a6ff;
+                --online: #3fb950;
+                --warning: #d29922;
+              }
+              body {
+                margin: 0;
+                padding: 40px 20px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: var(--bg);
+                color: var(--text);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              }
+              .container {
+                max-width: 1000px;
+                width: 100%;
+              }
+              header {
+                margin-bottom: 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 20px;
+              }
+              h1 {
+                margin: 0;
+                font-size: 28px;
+                letter-spacing: -0.5px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+              }
+              .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 500;
+                background: rgba(63, 185, 80, 0.15);
+                color: var(--online);
+                border: 1px solid rgba(63, 185, 80, 0.3);
+              }
+              .badge::before {
+                content: "";
+                display: block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background-color: var(--online);
+              }
+              .meta {
+                color: var(--text-muted);
+                font-size: 14px;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                background: var(--surface);
+                border-radius: 8px;
+                overflow: hidden;
+                border: 1px solid var(--border);
+              }
+              th, td {
+                padding: 14px 16px;
+                text-align: left;
+                border-bottom: 1px solid var(--border);
+                font-size: 14px;
+              }
+              th {
+                background-color: rgba(255, 255, 255, 0.03);
+                color: var(--text-muted);
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 12px;
+                letter-spacing: 0.5px;
+              }
+              tr:last-child td {
+                border-bottom: none;
+              }
+              .model-name {
+                font-family: monospace;
+                font-weight: 600;
+                color: var(--text);
+              }
+              .tag {
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                background: rgba(88, 166, 255, 0.12);
+                color: var(--accent);
+                font-family: monospace;
+              }
+              footer {
+                margin-top: 40px;
+                text-align: center;
+                font-size: 13px;
+                color: var(--text-muted);
+              }
+              a {
+                color: var(--accent);
+                text-decoration: none;
+              }
+              a:hover {
+                text-decoration: underline;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <header>
+                <div>
+                  <h1>
+                    <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" stroke="#58a6ff" stroke-width="6" fill="#161b22"/>
+                      <polygon points="50,22 80,38 80,68 50,84 20,68 20,38" stroke="#3fb950" stroke-width="4" fill="none"/>
+                      <circle cx="50" cy="53" r="8" fill="#58a6ff"/>
+                    </svg>
+                    Rudra Proxy
+                  </h1>
+                  <div class="meta" style="margin-top: 6px;">Universal AI Proxy Bridge & Drop-in Replacement</div>
+                </div>
+                <div style="text-align: right;">
+                  <span class="badge" id="status-badge">Operational</span>
+                  <div class="meta" style="margin-top: 6px;" id="last-updated">Checking...</div>
+                </div>
+              </header>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Model Identifier</th>
+                    <th>Provider</th>
+                    <th>Protocol</th>
+                    <th>Reasoning</th>
+                    <th>Context Limit</th>
+                    <th>Status</th>
+                    <th>Latency</th>
+                  </tr>
+                </thead>
+                <tbody id="models-body">
+                  <tr><td colspan="7" style="text-align:center; padding: 30px;">Loading live telemetry...</td></tr>
+                </tbody>
+              </table>
+
+              <footer>
+                Telemetry generated directly from <a href="status.json">status.json</a> • Powered by <a href="https://github.com/dari-os/rudra-proxy">rudra-proxy</a>
+              </footer>
+            </div>
+
+            <script>
+              fetch('status.json')
+                .then(r => r.json())
+                .then(data => {
+                  document.getElementById('last-updated').textContent = 'Last probed: ' + new Date(data.updated_at).toLocaleString();
+                  const tbody = document.getElementById('models-body');
+                  tbody.innerHTML = '';
+                  data.models.forEach(m => {
+                    const row = document.createElement('tr');
+                    const latency = m.latency_ms ? `${m.latency_ms} ms` : '-';
+                    row.innerHTML = `
+                      <td><span class="model-name">${m.id}</span></td>
+                      <td>${m.provider}</td>
+                      <td><span class="tag">${m.protocol}</span></td>
+                      <td>${m.reasoning}</td>
+                      <td>${Math.round(m.context_limit / 1000)}k</td>
+                      <td><span style="color: var(--online); font-weight: 500;">● ${m.status}</span></td>
+                      <td style="font-family: monospace;">${latency}</td>
+                    `;
+                    tbody.appendChild(row);
+                  });
+                })
+                .catch(err => {
+                  document.getElementById('models-body').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Failed to load status.json: ${err}</td></tr>`;
+                });
+            </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy Status Artifacts to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
+          keep_files: false
+          commit_message: "Automated status probe: update status.json [skip ci]"

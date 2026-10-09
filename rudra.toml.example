@@ -1,0 +1,162 @@
+# ==============================================================================
+# rudra.toml — Complete Configuration Reference for rudra-proxy
+# ==============================================================================
+# This configuration file controls the behavior of rudra-proxy, a lightweight,
+# zero-cost, self-hosted proxy bridge that exposes OpenCode Zen's free AI models
+# as drop-in compatible OpenAI (/v1/*) and Ollama (/api/*) endpoints.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Server & Network Configuration
+# ------------------------------------------------------------------------------
+# The network address and port to bind the HTTP server to.
+# Default port 11434 allows rudra-proxy to act as a seamless drop-in replacement
+# for Ollama without reconfiguring downstream clients (e.g. Open WebUI, Continue).
+host = "0.0.0.0"
+port = 11434
+
+# Cross-Origin Resource Sharing (CORS) allowed origin.
+# Use "*" for unrestricted access (e.g. from local browser web apps like Open WebUI),
+# or specify an explicit origin such as "http://localhost:3000".
+cors = "*"
+
+# Upstream HTTP request timeout in seconds.
+# Controls how long rudra-proxy waits for upstream gateway responses before timing out.
+timeout_secs = 120
+
+# Structured log filter level ("trace", "debug", "info", "warn", "error").
+log_level = "info"
+
+
+# ------------------------------------------------------------------------------
+# 2. Authentication Layers
+# ------------------------------------------------------------------------------
+# [Optional] Downstream Client Authentication:
+# Set this token to require clients to provide `Authorization: Bearer <token>`.
+# If commented out or omitted, downstream access is unauthenticated (open access).
+# api_key = "sk-rudra-secret-key"
+
+# Upstream OpenCode Zen Credentials:
+# Default "public" accesses all 13 free contributor models without an account.
+# If you possess an official OpenCode subscription, you may insert your paid key
+# here to unlock all 87+ models (e.g. Claude 3.5 Sonnet, GPT-5, Gemini 3.5 Pro).
+upstream_api_key = "public"
+
+
+# ------------------------------------------------------------------------------
+# 3. Dynamic Catalog Synchronization
+# ------------------------------------------------------------------------------
+# Interval in minutes for the background Tokio task to probe the live Zen gateway
+# (https://opencode.ai/zen/v1/models) and fetch updated metadata from Cloudflare
+# (https://models.opencode.ai/api.json).
+# Newly added models are automatically discovered; deprecated models are pruned.
+sync_interval_mins = 30
+
+
+# ------------------------------------------------------------------------------
+# 4. Model Aliases: Shorthand & Drop-in Compatibility
+# ------------------------------------------------------------------------------
+# Downstream autonomous agents (Hermes, Pi harness), web UIs (Open WebUI), and
+# coding assistants (Cursor, Aider) often send generic model names like "default"
+# or shorthand identifiers like "jev".
+#
+# Aliasing lets you map these shorthand names to specific OpenCode Zen model IDs.
+# When a client requests an alias, rudra-proxy transparently routes it to the
+# mapped model without modifying downstream client code.
+#
+# How to use the aliases below:
+#
+# • "default":
+#   Maps generic or unconfigured requests to your primary general-purpose LLM.
+#   Default target: "mimo-v2.6-flash-free" (fast, 262k context, interleaved reasoning).
+#   Usage:
+#     curl http://localhost:11434/v1/chat/completions \
+#       -d '{"model": "default", "messages": [{"role": "user", "content": "Hello!"}]}'
+#
+# • "jev":
+#   Maps the shorthand "jev" identifier directly to TypeSafe AI's "jev-1.13-free"
+#   decision model, automatically using TypeSafe AI's System One structured engine
+#   (https://opencode.ai/zen/v1/systemone).
+#   Usage (OpenAI chat completion bridge):
+#     curl http://localhost:11434/v1/chat/completions \
+#       -d '{"model": "jev", "messages": [{"role": "user", "content": "Should we refactor or patch?"}]}'
+#   Usage (Native System One evaluation):
+#     curl http://localhost:11434/v1/systemone \
+#       -d '{"model": "jev", "state": "Payment failed", "questions": {"is_urgent": {"type": "noul", "instructions": "Is urgent?"}}}'
+[aliases]
+"default" = "mimo-v2.6-flash-free"
+"jev" = "jev-1.13-free"
+
+
+# ------------------------------------------------------------------------------
+# 5. Reasoning Effort & Protocol Overrides (Optional)
+# ------------------------------------------------------------------------------
+# You can customize the default reasoning effort or protocol wire format for any
+# model ID. If a downstream client does not specify an effort level, or if you
+# wish to force a specific effort level, define it under [overrides.<model_id>].
+#
+# Supported Reasoning Effort Levels:
+# • "minimal": Fast, concise reasoning (muse-* models)
+# • "low":     Light reasoning scratchpad (muse-*, space-bunny-free, step-5-preview-free)
+# • "medium":  Balanced reasoning depth (default across most reasoning models)
+# • "high":    Deep reasoning traces (muse-*, space-bunny-free, step-5-preview-free, exo-free)
+# • "xhigh":   Maximum reasoning exploration (muse-*, space-bunny-free)
+#
+# Note: Models like mimo-v2.6-flash-free and nemotron-3-ultra-free use interleaved
+# reasoning tokens (delta.reasoning_content) and do not take effort strings.
+# Models like longcat-2.5-preview-free and ling-* use boolean toggle flags.
+#
+# Example Override for Space Bunny:
+[overrides."space-bunny-free"]
+reasoning_effort = "high"
+
+# Example Override for Muse Spark 1.3:
+[overrides."muse-spark-1.3-contributor-free"]
+protocol = "responses"       # "responses", "chat_completions", or "systemone"
+reasoning_effort = "xhigh"
+
+
+# ------------------------------------------------------------------------------
+# 6. Upstream Session ID (x-opencode-session) Auto-Rotation
+# ------------------------------------------------------------------------------
+# OpenCode tracks requests via the `x-opencode-session` header (ses_<12hex><14alnum>),
+# where the 12 hex digits contain a Unix millisecond timestamp.
+#
+# `rotate_after_requests` specifies how many requests reuse a session ID before
+# rudra-proxy automatically generates a fresh, authenticated session ID:
+# • 1:  Maximum anonymity — generates a brand new session ID on every single request.
+# • 10: Balanced (default) — rotates the session ID after every 10 requests.
+# • Downstream clients that explicitly pass an `x-opencode-session` header will
+#   always have their custom session ID preserved.
+[session]
+rotate_after_requests = 10
+
+
+# ------------------------------------------------------------------------------
+# 7. Outbound Forward Proxy Pool (HTTP, HTTPS, SOCKS5)
+# ------------------------------------------------------------------------------
+# Route all outbound upstream requests through external forward proxies to
+# distribute egress IP addresses, bypass rate limits, and maintain client privacy.
+# Supports standard HTTP proxies, HTTPS proxies, and SOCKS5 tunnels (Tor, SSH).
+[proxy]
+enabled = false
+
+# Global rotation threshold: switch to the next proxy node after every N requests.
+switch_after_requests = 100
+
+# Option A: Simple proxy URL list (round-robin switched every switch_after_requests)
+proxies = [
+    # "http://127.0.0.1:8080",
+    # "socks5://127.0.0.1:9050",
+    # "https://user:password@proxy.example.com:8443",
+]
+
+# Option B: Fine-grained per-proxy quota configuration:
+# Specify custom request quotas per individual proxy node before switching.
+# [[proxy.list]]
+# url = "http://premium-proxy.corp:8080"
+# requests = 500              # Route 500 requests through this proxy before rotating
+#
+# [[proxy.list]]
+# url = "socks5://127.0.0.1:9050"
+# requests = 50               # Route 50 requests through Tor/SOCKS5 before rotating
