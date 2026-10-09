@@ -154,15 +154,28 @@ pub fn build_opencode_payload(
                 "parameters": { "type": "object", "properties": {} }
             });
 
-            let mut tools = vec![dummy_bash, dummy_read];
+            let mut tools = Vec::new();
+            let mut has_bash = false;
+            let mut has_read = false;
+
             if let Some(ref client_tools) = req.tools {
                 for t in client_tools {
-                    // Avoid duplicating bash or read
                     let name = t.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                    if name != "bash" && name != "read" {
-                        tools.push(t.clone());
+                    if name == "bash" {
+                        has_bash = true;
                     }
+                    if name == "read" {
+                        has_read = true;
+                    }
+                    tools.push(t.clone());
                 }
+            }
+
+            if !has_bash {
+                tools.push(dummy_bash);
+            }
+            if !has_read {
+                tools.push(dummy_read);
             }
 
             let converted_input = convert_messages_to_responses_input(&req.messages);
@@ -213,18 +226,33 @@ pub fn build_opencode_payload(
                 }
             });
 
-            let mut tools = vec![dummy_bash, dummy_read];
+            let mut tools = Vec::new();
+            let mut has_bash = false;
+            let mut has_read = false;
+
             if let Some(ref client_tools) = req.tools {
                 for t in client_tools {
                     let name = t
                         .get("function")
                         .and_then(|f| f.get("name"))
                         .and_then(|n| n.as_str())
+                        .or_else(|| t.get("name").and_then(|n| n.as_str()))
                         .unwrap_or("");
-                    if name != "bash" && name != "read" {
-                        tools.push(t.clone());
+                    if name == "bash" {
+                        has_bash = true;
                     }
+                    if name == "read" {
+                        has_read = true;
+                    }
+                    tools.push(t.clone());
                 }
+            }
+
+            if !has_bash {
+                tools.push(dummy_bash);
+            }
+            if !has_read {
+                tools.push(dummy_read);
             }
 
             let mut payload = json!({

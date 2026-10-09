@@ -568,3 +568,58 @@ fn test_make_openai_tool_chunk_format() {
     assert!(terminal.contains("data: [DONE]"));
 }
 
+#[tokio::test]
+async fn test_custom_harness_tools_preservation() {
+    let client = reqwest::Client::new();
+    let config = AppConfig::load(make_test_cli_args());
+    let registry = ModelRegistry::new(client, &config);
+    let mimo_meta = registry.resolve_model("mimo-v2.6-flash-free").await;
+
+    // 1. Harness (like Claude Code / Hermes) supplies its own bash tool with custom schema
+    let custom_bash = json!({
+        "type": "function",
+        "function": {
+            "name": "bash",
+            "description": "Execute arbitrary shell command in workspace",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": { "type": "string" },
+                    "timeout": { "type": "integer" }
+                },
+                "required": ["command"]
+            }
+        }
+    });
+
+    let req_with_custom = OpenAiChatRequest {
+        model: "mimo-v2.6-flash-free".to_string(),
+        messages: vec![json!({"role": "user", "content": "list directory"})],
+        tools: Some(vec![custom_bash]),
+        ..Default::default()
+    };
+
+    let payload = build_opencode_payload(&req_with_custom, &mimo_meta, None);
+    let tools = payload["tools"].as_array().expect("tools");
+    assert_eq!(tools.len(), 2); // 1 custom bash + 1 injected dummy read
+
+    let bash_tool = tools.iter().find(|t| t["function"]["name"] == "bash").expect("bash tool");
+    assert_eq!(bash_tool["function"]["description"], "Execute arbitrary shell command in workspace");
+    assert!(bash_tool["function"]["parameters"]["properties"].get("command").is_some());
+
+    // 2. Client passes NO tools: proxy automatically injects dummy bash and read
+    let req_no_tools = OpenAiChatRequest {
+        model: "mimo-v2.6-flash-free".to_string(),
+        messages: vec![json!({"role": "user", "content": "hello"})],
+        tools: None,
+        ..Default::default()
+    };
+
+    let payload_no_tools = build_opencode_payload(&req_no_tools, &mimo_meta, None);
+    let auto_tools = payload_no_tools["tools"].as_array().expect("tools");
+    assert_eq!(auto_tools.len(), 2);
+    assert!(auto_tools.iter().any(|t| t["function"]["name"] == "bash"));
+    assert!(auto_tools.iter().any(|t| t["function"]["name"] == "read"));
+}
+
+
