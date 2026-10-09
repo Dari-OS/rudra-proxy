@@ -99,16 +99,15 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
             continue;
         }
 
-        if role == "assistant" {
-            if let Some(tool_calls) = msg.get("tool_calls").and_then(|t| t.as_array()) {
-                if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
-                    if !content.is_empty() {
+        if role == "assistant"
+            && let Some(tool_calls) = msg.get("tool_calls").and_then(|t| t.as_array()) {
+                if let Some(content) = msg.get("content").and_then(|c| c.as_str())
+                    && !content.is_empty() {
                         input.push(json!({
                             "role": "assistant",
                             "content": content
                         }));
                     }
-                }
                 for tc in tool_calls {
                     let call_id = tc.get("id").and_then(|i| i.as_str()).unwrap_or("");
                     let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
@@ -122,7 +121,6 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
                 }
                 continue;
             }
-        }
 
         input.push(msg.clone());
     }
@@ -457,11 +455,10 @@ pub fn make_openai_completion(
         "stop".to_string()
     };
 
-    if let Some(tc) = tool_calls {
-        if !tc.is_empty() {
+    if let Some(tc) = tool_calls
+        && !tc.is_empty() {
             message["tool_calls"] = json!(tc);
         }
-    }
 
     json!({
         "id": id,

@@ -224,6 +224,53 @@ rudra run default "Explain how atomic operations work in Rust in 3 sentences."
 
 ---
 
+## Tool Calling & Agent Harness Support
+
+Rudra functions as a drop-in proxy bridge for autonomous agent harnesses including Claude Code, Hermes Agent, Pi harness, Codex, OpenCode, and Aider.
+
+### Architecture & Responsibility Separation
+
+- **Harness-Driven Execution:** The downstream harness defines tools and executes them locally on your workstation (running shell commands, modifying workspace files, or invoking web APIs). Rudra does not execute tools; it transparently negotiates and bridges tool schemas and calls between the harness and the models.
+- **Harness Tool Schema Preservation:** When a harness submits tools (`tools: [...]`), Rudra preserves the harness's exact tool names, descriptions, and JSON parameter schemas without modification.
+- **Gateway Validation Guard:** The OpenCode Zen gateway requires contributor-tier requests to declare tool definitions for `bash` and `read`. If a client makes a conversational request without tools (or provides custom tools that omit `bash` or `read`), Rudra automatically injects dummy definitions upstream so the gateway never rejects requests with `FreeTierError`.
+- **Streaming & Non-Streaming Support:** Delivers real-time `delta.tool_calls` chunks when streaming (`stream: true`), and aggregates complete `message.tool_calls` objects with `finish_reason: "tool_calls"` when non-streaming (`stream: false`).
+- **Multi-Turn Continuity:** When your harness executes a tool and returns the result in `{ role: "tool", tool_call_id: "...", content: "..." }`, Rudra transparently relays the conversation history upstream across all models (including automatic translation into `function_call_output` wire items for `muse-*` models on the Responses API).
+
+### Tool Calling Example (Python SDK)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="public"
+)
+
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Get current weather in a city",
+        "parameters": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"],
+        },
+    },
+}]
+
+response = client.chat.completions.create(
+    model="default",
+    messages=[{"role": "user", "content": "What is the weather in Tokyo?"}],
+    tools=tools,
+)
+
+tool_call = response.choices[0].message.tool_calls[0]
+print(f"Tool: {tool_call.function.name}, Arguments: {tool_call.function.arguments}")
+```
+
+---
+
 ## Inference & Sampling Parameters
 
 Rudra implements the full OpenAI chat completion specification and seamlessly translates parameters across both standard LLMs and Responses API models:

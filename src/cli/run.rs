@@ -135,7 +135,7 @@ pub async fn execute(args: RunArgs) -> Result<(), Box<dyn std::error::Error>> {
             "content": trimmed
         }));
 
-        print!("\n");
+        println!();
         let assistant_reply = send_and_stream(
             &upstream_client,
             &model_meta,
@@ -268,9 +268,9 @@ async fn send_and_stream(
                 }
                 if let Ok(json) = serde_json::from_str::<Value>(&event.data) {
                     if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
-                        if let Some(first) = choices.first() {
-                            if let Some(delta) = first.get("delta") {
-                                if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                        if let Some(first) = choices.first()
+                            && let Some(delta) = first.get("delta")
+                                && let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
                                     if ttft.is_none() {
                                         ttft = Some(start_total.elapsed().as_millis());
                                     }
@@ -280,8 +280,6 @@ async fn send_and_stream(
                                     io::stdout().flush()?;
                                     full_response.push_str(content);
                                 }
-                            }
-                        }
                     } else if json.get("type").and_then(|t| t.as_str()) == Some("response.output_text.delta") {
                         if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
                             if ttft.is_none() {
@@ -311,7 +309,7 @@ async fn send_and_stream(
 
     let total_elapsed = start_total.elapsed();
     let ttft_ms = ttft.unwrap_or(0);
-    let approx_tokens = token_chunks.max((generated_chars + 3) / 4);
+    let approx_tokens = token_chunks.max(generated_chars.div_ceil(4));
     let gen_duration = (total_elapsed.as_millis().saturating_sub(ttft_ms) as f64) / 1000.0;
     let tps = if gen_duration > 0.02 {
         approx_tokens as f64 / gen_duration

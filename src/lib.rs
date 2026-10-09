@@ -91,7 +91,7 @@ pub fn run_main() -> Result<(), Box<dyn std::error::Error>> {
     let log_level_filter = cli
         .log_level
         .as_deref()
-        .or_else(|| match &cli.command {
+        .or(match &cli.command {
             Some(Commands::Serve(args)) => args.log_level.as_deref(),
             _ => None,
         })
@@ -118,7 +118,7 @@ pub fn run_main() -> Result<(), Box<dyn std::error::Error>> {
             .init();
     }
 
-    let workers = cli.workers.or_else(|| match &cli.command {
+    let workers = cli.workers.or(match &cli.command {
         Some(Commands::Serve(args)) => args.workers,
         _ => None,
     });

@@ -88,21 +88,17 @@ pub async fn execute(args: BenchArgs) -> Result<(), Box<dyn std::error::Error>> 
                 if event.data == "[DONE]" {
                     break;
                 }
-                if let Ok(json) = serde_json::from_str::<Value>(&event.data) {
-                    if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
-                        if let Some(first) = choices.first() {
-                            if let Some(delta) = first.get("delta") {
-                                if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
+                if let Ok(json) = serde_json::from_str::<Value>(&event.data)
+                    && let Some(choices) = json.get("choices").and_then(|c| c.as_array())
+                        && let Some(first) = choices.first()
+                            && let Some(delta) = first.get("delta")
+                                && let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
                                     if ttft.is_none() {
                                         ttft = Some(start_total.elapsed().as_millis());
                                     }
                                     token_chunks += 1;
                                     generated_chars += content.len();
                                 }
-                            }
-                        }
-                    }
-                }
             }
             Err(_) => break,
         }

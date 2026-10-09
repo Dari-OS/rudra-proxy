@@ -131,7 +131,7 @@ async fn probe_single_model(
 
                 let total_ms = start.elapsed().as_millis() as u64;
                 let ttft_ms = ttft.unwrap_or(total_ms as u128) as u64;
-                let approx_tokens = token_chunks.max((chars + 3) / 4);
+                let approx_tokens = token_chunks.max(chars.div_ceil(4));
                 let gen_duration = (total_ms.saturating_sub(ttft_ms) as f64) / 1000.0;
                 let tps = if approx_tokens > 0 {
                     let speed = if gen_duration > 0.02 {

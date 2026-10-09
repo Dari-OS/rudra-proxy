@@ -283,8 +283,8 @@ pub async fn chat(
                                     }
                                 }
                                 "response.output_item.added" => {
-                                    if let Some(item) = v.get("item") {
-                                        if item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
+                                    if let Some(item) = v.get("item")
+                                        && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
                                             finish_reason = "tool_calls";
                                             let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                                             let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
@@ -295,7 +295,6 @@ pub async fn chat(
                                             if !name.is_empty() { entry.2 = name; }
                                             if !args.is_empty() { entry.3.push_str(&args); }
                                         }
-                                    }
                                 }
                                 "response.function_call_arguments.delta" => {
                                     finish_reason = "tool_calls";
@@ -306,8 +305,8 @@ pub async fn chat(
                                     }
                                 }
                                 "response.completed" => {
-                                    if let Some(resp_obj) = v.get("response") {
-                                        if let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
+                                    if let Some(resp_obj) = v.get("response")
+                                        && let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
                                             for (idx, out_item) in outputs.iter().enumerate() {
                                                 if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
                                                     finish_reason = "tool_calls";
@@ -321,7 +320,6 @@ pub async fn chat(
                                                 }
                                             }
                                         }
-                                    }
                                 }
                                 _ => {}
                             }
@@ -329,11 +327,10 @@ pub async fn chat(
                         ModelProtocol::ChatCompletions => {
                             if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
                                 for choice in choices {
-                                    if let Some(fr) = choice.get("finish_reason").and_then(|f| f.as_str()) {
-                                        if fr == "tool_calls" {
+                                    if let Some(fr) = choice.get("finish_reason").and_then(|f| f.as_str())
+                                        && fr == "tool_calls" {
                                             finish_reason = "tool_calls";
                                         }
-                                    }
                                     if let Some(delta_obj) = choice.get("delta") {
                                         if let Some(content) =
                                             delta_obj.get("content").and_then(|c| c.as_str())

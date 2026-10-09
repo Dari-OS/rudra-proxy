@@ -129,11 +129,10 @@ impl SessionManager {
     /// If the client supplied a valid session header, honors it.
     /// Otherwise uses the managed session ID, rotating every `rotate_after_requests` requests.
     pub async fn get_or_rotate_session(&self, client_header: Option<&str>) -> SessionId {
-        if let Some(header_val) = client_header {
-            if let Ok(parsed) = SessionId::parse(header_val) {
+        if let Some(header_val) = client_header
+            && let Ok(parsed) = SessionId::parse(header_val) {
                 return parsed;
             }
-        }
 
         // If rotate_after_requests <= 1, generate a fresh ID on every request
         if self.rotate_after_requests <= 1 {

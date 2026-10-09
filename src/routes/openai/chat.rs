@@ -210,8 +210,8 @@ pub async fn chat_completions(
                                             }
                                         }
                                         "response.output_item.added" => {
-                                            if let Some(item) = v.get("item") {
-                                                if item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
+                                            if let Some(item) = v.get("item")
+                                                && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
                                                     has_tool_calls = true;
                                                     let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                                                     let call_id = item.get("call_id").and_then(|c| c.as_str());
@@ -228,7 +228,6 @@ pub async fn chat_completions(
                                                         break;
                                                     }
                                                 }
-                                            }
                                         }
                                         "response.function_call_arguments.delta" => {
                                             has_tool_calls = true;
@@ -315,8 +314,8 @@ pub async fn chat_completions(
                                     }
                                 }
                                 "response.output_item.added" => {
-                                    if let Some(item) = v.get("item") {
-                                        if item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
+                                    if let Some(item) = v.get("item")
+                                        && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
                                             let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                                             let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
                                             let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
@@ -326,7 +325,6 @@ pub async fn chat_completions(
                                             if !name.is_empty() { entry.2 = name; }
                                             if !args.is_empty() { entry.3.push_str(&args); }
                                         }
-                                    }
                                 }
                                 "response.function_call_arguments.delta" => {
                                     let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
@@ -336,8 +334,8 @@ pub async fn chat_completions(
                                     }
                                 }
                                 "response.completed" => {
-                                    if let Some(resp_obj) = v.get("response") {
-                                        if let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
+                                    if let Some(resp_obj) = v.get("response")
+                                        && let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
                                             for (idx, out_item) in outputs.iter().enumerate() {
                                                 if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
                                                     let call_id = out_item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
@@ -350,7 +348,6 @@ pub async fn chat_completions(
                                                 }
                                             }
                                         }
-                                    }
                                 }
                                 _ => {}
                             }
