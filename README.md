@@ -169,25 +169,163 @@ docker compose run --rm rudra-proxy doctor
 
 Because Rudra implements standard OpenAI and Ollama protocol interfaces, downstream integration requires only pointing client base URLs to `localhost:11434`.
 
-### Open WebUI
+### Major Agent Harnesses
 
-1. Open **Settings** > **Connections**.
-2. Under **Ollama API**, ensure the base URL is set to `http://localhost:11434` (or `http://host.docker.internal:11434` when running Open WebUI in a container).
-3. Save settings. All active models populate the model selection interface automatically.
+<details>
+<summary><strong>Expand setup instructions for major agent harnesses (OpenCode, Hermes Agent, Pi Harness, Aider, Cline, Continue, Claude Code, Cursor, Open WebUI)</strong></summary>
 
-### Cursor / Continue.dev / Windsurf
+<br>
 
-Configure a custom OpenAI-compatible provider:
+#### OpenCode
 
-- **Base URL:** `http://localhost:11434/v1`
-- **API Key:** `public` (or any non-empty string)
-- **Model:** `default` or `mimo-v2.6-flash-free`
+Configure Rudra in your project `opencode.json` (or global `~/.config/opencode/opencode.json`):
 
-### Aider
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "rudra-proxy": {
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "step-5-preview-free": {
+          "name": "Step 5"
+        },
+        "mimo-v2.6-flash-free": {
+          "name": "Mimo V2.6 flash"
+        },
+        "muse-spark-1.3-contributor-free": {
+          "name": "Muse spark 1.3"
+        }
+      }
+    }
+  }
+}
+```
+
+Run OpenCode with the configured model:
+
+```bash
+opencode --model rudra-proxy/step-5-preview-free
+```
+
+#### Hermes Agent
+
+Configure Hermes Agent in `~/.hermes/.env`:
+
+```bash
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=public
+```
+
+Alternatively, run the interactive model setup wizard:
+
+```bash
+hermes model
+```
+
+Select a custom OpenAI-compatible endpoint, then provide `http://localhost:11434/v1` as the base URL, `public` as the API key, and `step-5-preview-free` or `default` as the model name.
+
+#### Pi Harness
+
+Add the provider entry to `~/.pi/agent/models.json`:
+
+```json
+{
+  "providers": {
+    "rudra-proxy": {
+      "baseUrl": "http://localhost:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "public",
+      "models": [
+        "step-5-preview-free",
+        "mimo-v2.6-flash-free",
+        "default"
+      ]
+    }
+  }
+}
+```
+
+Start Pi with the configured provider:
+
+```bash
+pi --model rudra-proxy/step-5-preview-free
+```
+
+#### Aider
+
+Invoke Aider from the command line:
 
 ```bash
 aider --openai-api-base http://localhost:11434/v1 --openai-api-key public --model default
 ```
+
+Or persist settings in `.aider.conf.yml` in your workspace:
+
+```yaml
+openai-api-base: http://localhost:11434/v1
+openai-api-key: public
+model: default
+```
+
+#### Cline / Roo Code (VS Code)
+
+1. Open extension settings in VS Code.
+2. Set **API Provider** to `OpenAI Compatible`.
+3. Set **Base URL** to `http://localhost:11434/v1`.
+4. Set **API Key** to `public`.
+5. Set **Model ID** to `step-5-preview-free` or `mimo-v2.6-flash-free`.
+
+#### Continue.dev
+
+Add the model entries to `~/.continue/config.json`:
+
+```json
+{
+  "models": [
+    {
+      "title": "Rudra Step 5",
+      "provider": "openai",
+      "model": "step-5-preview-free",
+      "apiBase": "http://localhost:11434/v1",
+      "apiKey": "public"
+    },
+    {
+      "title": "Rudra Mimo",
+      "provider": "openai",
+      "model": "mimo-v2.6-flash-free",
+      "apiBase": "http://localhost:11434/v1",
+      "apiKey": "public"
+    }
+  ]
+}
+```
+
+#### Claude Code
+
+Claude Code communicates using the Anthropic Messages API (`/v1/messages`). When routing Claude Code through an OpenAI translation adapter or proxy gateway:
+
+```bash
+export ANTHROPIC_BASE_URL="http://localhost:11434/v1"
+export ANTHROPIC_AUTH_TOKEN="public"
+```
+
+#### Cursor & Windsurf
+
+1. Open **Settings** > **Models** (or **AI Settings**).
+2. Enable custom OpenAI API Key and enter `public`.
+3. Override **OpenAI Base URL** with `http://localhost:11434/v1`.
+4. Add model IDs such as `step-5-preview-free` or `default`.
+
+#### Open WebUI
+
+1. Open **Settings** > **Connections**.
+2. Under **Ollama API**, ensure the base URL is set to `http://localhost:11434` (or `http://host.docker.internal:11434` if Open WebUI runs in Docker).
+3. Save settings. All 13 models populate the selection interface automatically.
+
+</details>
 
 ### Python (Official OpenAI SDK)
 
