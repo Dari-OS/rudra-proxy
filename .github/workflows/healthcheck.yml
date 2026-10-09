@@ -212,13 +212,15 @@ jobs:
                   data.models.forEach(m => {
                     const row = document.createElement('tr');
                     const latency = m.latency_ms ? `${m.latency_ms} ms` : '-';
+                    const isOnline = m.status === 'online';
+                    const statusColor = isOnline ? 'var(--online)' : '#f85149';
                     row.innerHTML = `
                       <td><span class="model-name">${m.id}</span></td>
                       <td>${m.provider}</td>
                       <td><span class="tag">${m.protocol}</span></td>
                       <td>${m.reasoning}</td>
                       <td>${Math.round(m.context_limit / 1000)}k</td>
-                      <td><span style="color: var(--online); font-weight: 500;">● ${m.status}</span></td>
+                      <td><span style="color: ${statusColor}; font-weight: 500;">● ${m.status}</span></td>
                       <td style="font-family: monospace;">${latency}</td>
                     `;
                     tbody.appendChild(row);

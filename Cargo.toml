@@ -2,6 +2,7 @@
 name = "rudra-proxy"
 version = "0.1.0"
 edition = "2024"
+default-run = "rudra"
 description = "Universal AI Proxy Bridge & Drop-in Replacement for OpenCode Zen (OpenAI & Ollama API Compatible)"
 
 [dependencies]

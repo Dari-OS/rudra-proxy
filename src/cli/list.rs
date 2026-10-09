@@ -2,9 +2,15 @@ use crate::config::{AppConfig, CliArgs, ListArgs, ListFormat};
 use crate::registry::baseline::get_baseline_models;
 use crate::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
 use crate::registry::sync::{fetch_and_sync_models, OPENCODE_ZEN_MODELS_URL};
+use crate::session::SessionId;
+use crate::upstream::client::UpstreamClient;
+use crate::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use crate::upstream::proxy_pool::ProxyPool;
 use chrono::Utc;
+use futures::future::join_all;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
 
 #[derive(Serialize)]
@@ -27,6 +33,66 @@ pub struct FullStatusOutput {
     pub gateway: String,
     pub models_count: usize,
     pub models: Vec<ModelStatusOutput>,
+}
+
+async fn probe_single_model(
+    upstream_client: &UpstreamClient,
+    model: &ModelMetadata,
+) -> (String, Option<u64>) {
+    let session_id = SessionId::generate();
+    let start = Instant::now();
+
+    if model.protocol == ModelProtocol::SystemOne {
+        let payload = serde_json::json!({
+            "model": model.id,
+            "state": "ping",
+            "questions": {
+                "decision": {
+                    "type": "noul",
+                    "instructions": "ping"
+                }
+            }
+        });
+        match upstream_client.dispatch_systemone(&session_id, &payload).await {
+            Ok(res) if res.status().is_success() => {
+                let latency = start.elapsed().as_millis() as u64;
+                ("online".to_string(), Some(latency))
+            }
+            Ok(res) => {
+                let status_code = res.status();
+                (format!("error ({status_code})"), None)
+            }
+            Err(_) => ("offline".to_string(), None),
+        }
+    } else {
+        let chat_req = OpenAiChatRequest {
+            model: model.id.clone(),
+            messages: vec![serde_json::json!({
+                "role": "user",
+                "content": "ping"
+            })],
+            stream: true,
+            temperature: Some(0.1),
+            top_p: None,
+            max_tokens: None,
+            reasoning_effort: None,
+            tools: None,
+            tool_choice: None,
+            extra: serde_json::Map::new(),
+        };
+        let payload = build_opencode_payload(&chat_req, model, None);
+        match upstream_client.dispatch(model.protocol, &session_id, &payload).await {
+            Ok(res) if res.status().is_success() => {
+                let latency = start.elapsed().as_millis() as u64;
+                ("online".to_string(), Some(latency))
+            }
+            Ok(res) => {
+                let status_code = res.status();
+                (format!("error ({status_code})"), None)
+            }
+            Err(_) => ("offline".to_string(), None),
+        }
+    }
 }
 
 pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
@@ -57,24 +123,41 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
-    let (models, live_latency): (HashMap<String, ModelMetadata>, Option<u64>) = if args.live {
-        let start = Instant::now();
+    let (models, catalog_synced): (HashMap<String, ModelMetadata>, bool) = if args.live {
         match fetch_and_sync_models(&client, &config.upstream_api_key).await {
-            Ok(live_models) => {
-                let duration = start.elapsed().as_millis() as u64;
-                (live_models, Some(duration))
-            }
+            Ok(live_models) => (live_models, true),
             Err(e) => {
                 eprintln!("[!] Live upstream sync failed: {e}. Falling back to baseline catalog.");
-                (get_baseline_models(), None)
+                (get_baseline_models(), false)
             }
         }
     } else {
-        (get_baseline_models(), None)
+        (get_baseline_models(), false)
     };
 
-    let mut model_list: Vec<ModelStatusOutput> = models
-        .into_values()
+    let proxy_pool = ProxyPool::new(&config.proxy, client.clone());
+    let upstream_client = Arc::new(UpstreamClient::new(proxy_pool, config.upstream_api_key.clone()));
+
+    let model_values: Vec<ModelMetadata> = models.into_values().collect();
+    let mut probe_results: HashMap<String, (String, Option<u64>)> = HashMap::new();
+
+    if args.live {
+        let probe_futures = model_values.iter().map(|m| {
+            let client = Arc::clone(&upstream_client);
+            let model = m.clone();
+            async move {
+                let res = probe_single_model(&client, &model).await;
+                (model.id, res)
+            }
+        });
+        let results = join_all(probe_futures).await;
+        for (id, res) in results {
+            probe_results.insert(id, res);
+        }
+    }
+
+    let mut model_list: Vec<ModelStatusOutput> = model_values
+        .into_iter()
         .map(|m| {
             let protocol_str = match m.protocol {
                 ModelProtocol::Responses => "responses",
@@ -87,10 +170,13 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
                 ReasoningType::Interleaved => "interleaved".to_string(),
                 ReasoningType::None => "none".to_string(),
             };
-            let status_str = if live_latency.is_some() {
-                "online".to_string()
+            let (status_str, latency) = if args.live {
+                probe_results
+                    .get(&m.id)
+                    .cloned()
+                    .unwrap_or_else(|| ("unknown".to_string(), None))
             } else {
-                "available".to_string()
+                ("available".to_string(), None)
             };
 
             ModelStatusOutput {
@@ -102,7 +188,7 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
                 context_limit: m.context_limit,
                 output_limit: m.output_limit,
                 status: status_str,
-                latency_ms: live_latency,
+                latency_ms: latency,
             }
         })
         .collect();
@@ -111,10 +197,13 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     match args.format {
         ListFormat::Json => {
+            let any_online = model_list.iter().any(|m| m.status == "online");
             let output = FullStatusOutput {
                 updated_at: Utc::now().to_rfc3339(),
-                status: if live_latency.is_some() || !args.live {
+                status: if any_online || (!args.live && catalog_synced) {
                     "operational".to_string()
+                } else if !args.live {
+                    "available".to_string()
                 } else {
                     "degraded".to_string()
                 },

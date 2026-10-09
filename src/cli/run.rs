@@ -259,6 +259,16 @@ async fn send_and_stream(
                                 }
                             }
                         }
+                    } else if json.get("type").and_then(|t| t.as_str()) == Some("response.output_text.delta") {
+                        if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
+                            print!("{delta}");
+                            io::stdout().flush()?;
+                            full_response.push_str(delta);
+                        }
+                    } else if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
+                        print!("{delta}");
+                        io::stdout().flush()?;
+                        full_response.push_str(delta);
                     }
                 }
             }
