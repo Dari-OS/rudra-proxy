@@ -114,13 +114,29 @@ cd rudra-proxy
 cargo run --release -- serve
 ```
 
-### Option B: Run with Docker
+### Option B: Run with Docker Compose
 
 ```bash
-# Build the container image
-docker build -t rudra-proxy .
+# Clone the repository
+git clone https://github.com/dari-os/rudra-proxy.git
+cd rudra-proxy
 
-# Run container in background on port 11434
+# Build and start the container in background
+docker compose up -d
+```
+
+### Option C: Run Pre-built Container (GHCR)
+
+Run instantly without local compilation:
+
+```bash
+docker run -d --name rudra-proxy -p 11434:11434 ghcr.io/dari-os/rudra-proxy:latest
+```
+
+### Option D: Manual Docker Build
+
+```bash
+docker build -t rudra-proxy .
 docker run -d --name rudra-proxy -p 11434:11434 rudra-proxy
 ```
 
@@ -129,7 +145,11 @@ docker run -d --name rudra-proxy -p 11434:11434 rudra-proxy
 Run the built-in diagnostic suite to confirm port availability, network reachability, and session encoding integrity:
 
 ```bash
+# Via Cargo
 cargo run --release -- doctor
+
+# Via Docker Compose
+docker compose run --rm rudra-proxy doctor
 ```
 
 ```text

@@ -1,7 +1,10 @@
 services:
   rudra-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: rudra-proxy:latest
-    build: .
+    pull_policy: build
     container_name: rudra-proxy
     restart: unless-stopped
     ports:
@@ -10,5 +13,6 @@ services:
       - RUDRA_HOST=0.0.0.0
       - RUDRA_PORT=11434
       - RUDRA_SYNC_INTERVAL_MINS=30
-    volumes:
-      - ./rudra.toml:/app/rudra.toml:ro
+    # Optional: To use a custom configuration file, copy rudra.toml.example to rudra.toml and uncomment:
+    # volumes:
+    #   - ./rudra.toml:/app/rudra.toml:ro
