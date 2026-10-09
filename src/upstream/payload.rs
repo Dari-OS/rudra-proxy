@@ -412,7 +412,7 @@ pub fn make_openai_terminal_chunk(id: &str, model: &str, finish_reason: Option<&
         ]
     });
 
-    format!("data: {chunk}\ndata: [DONE]\n\n")
+    format!("data: {chunk}\n\ndata: [DONE]\n\n")
 }
 
 /// Creates a standard OpenAI non-streaming `chat.completion` response JSON object.

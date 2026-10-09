@@ -565,7 +565,11 @@ fn test_make_openai_tool_chunk_format() {
 
     let terminal = make_openai_terminal_chunk("cmpl-1", "mimo-v2.6-flash-free", Some("tool_calls"));
     assert!(terminal.contains("\"finish_reason\":\"tool_calls\""));
-    assert!(terminal.contains("data: [DONE]"));
+    assert!(terminal.ends_with("\n\ndata: [DONE]\n\n"));
+    let events: Vec<&str> = terminal.split("\n\n").filter(|s| !s.is_empty()).collect();
+    assert_eq!(events.len(), 2);
+    assert!(events[0].starts_with("data: {"));
+    assert_eq!(events[1], "data: [DONE]");
 }
 
 #[tokio::test]

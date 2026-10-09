@@ -181,9 +181,16 @@ pub async fn chat_completions(
                             continue;
                         }
                         if event.data == "[DONE]" {
-                            let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
-                            let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
-                            let _ = tx.send(Ok(chunk)).await;
+                            match protocol {
+                                ModelProtocol::ChatCompletions => {
+                                    let _ = tx.send(Ok("data: [DONE]\n\n".to_string())).await;
+                                }
+                                _ => {
+                                    let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
+                                    let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
+                                    let _ = tx.send(Ok(chunk)).await;
+                                }
+                            }
                             sent_terminal = true;
                             break;
                         }
