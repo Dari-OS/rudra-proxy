@@ -1,5 +1,7 @@
+<div align="center">
+
 <p align="center">
-  <svg width="140" height="140" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <!-- Outer Octagon Shield -->
     <polygon points="50,4 85,18 96,50 85,82 50,96 15,82 4,50 15,18" stroke="#30363d" stroke-width="2" fill="#0d1117"/>
     <!-- Cyber Geometric Lattice -->
@@ -18,224 +20,94 @@
   </svg>
 </p>
 
-<h1 align="center">Rudra Proxy</h1>
+# Rudra
 
-<p align="center">
-  <strong>Free, Keyless AI Bridge & Universal Drop-in Replacement for OpenAI & Ollama</strong><br>
-  <em>100% Free • No API Keys • No Credit Cards • 13 Frontier Models • 1M Context Windows • Drop-in for Any AI App</em>
-</p>
+### Universal AI proxy bridge and drop-in replacement for OpenAI and Ollama APIs.
 
-<p align="center">
-  <a href="https://github.com/dari-os/rudra-proxy/actions/workflows/healthcheck.yml"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.status&label=Zen%20Gateway&color=3fb950&style=flat-square" alt="Gateway Status"></a>
-  <a href="https://github.com/dari-os/rudra-proxy/actions/workflows/healthcheck.yml"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.models_count&label=Active%20Models&color=58a6ff&style=flat-square" alt="Active Models"></a>
-  <img src="https://img.shields.io/badge/Cost-100%25%20Free-success?style=flat-square" alt="100% Free">
-  <img src="https://img.shields.io/badge/Port-11434-79c0ff?style=flat-square" alt="Port 11434">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License MIT">
-</p>
+**Keyless contributor tier access. 13 verified frontier models with up to 1M context. Zero configuration.**
 
----
+[![Gateway](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.status&label=gateway&color=3fb950&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
+[![Active Models](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdari-os.github.io%2Frudra-proxy%2Fstatus.json&query=%24.models_count&label=models&color=58a6ff&style=flat-square)](https://dari-os.github.io/rudra-proxy/)
+[![CI](https://img.shields.io/github/actions/workflow/status/dari-os/rudra-proxy/healthcheck.yml?branch=main&label=ci&style=flat-square)](https://github.com/dari-os/rudra-proxy/actions/workflows/healthcheck.yml)
+[![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B-dea584?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Default Port](https://img.shields.io/badge/port-11434-79c0ff?style=flat-square)](https://ollama.com/)
+[![License MIT](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
 
-> [!IMPORTANT]
-> ### 🎁 Yes, This is 100% Completely Free AI!
-> **No subscriptions. No API keys. No credit cards. No waiting lists.**  
-> `rudra-proxy` bridges OpenCode Zen's open contributor infrastructure directly to your local computer. It gives you unrestricted, high-speed access to **13 cutting-edge models** (including massive 1,000,000+ token context windows, deep reasoning engines, NVIDIA Nemotron, and TypeSafe AI System One).  
-> It acts as a local drop-in clone of OpenAI (`/v1`) and Ollama (`/api`), meaning **virtually every AI app on earth**—from **Open WebUI** and **Cursor** to **Continue.dev**, **Hermes**, **Aider**, and the official **OpenAI Python library**—works right out of the box with zero code changes.
+[Quickstart](#quickstart) · [Architecture](#architecture) · [Client Setup](#client-setup) · [Model Catalog](#model-catalog) · [CLI Reference](#cli-reference) · [Configuration](#configuration) · [Deployment](#deployment)
+
+<code>cargo run --release -- serve</code>
+
+</div>
 
 ---
 
-## 💡 How Does It Work?
+Rudra is a lightweight, high-performance proxy bridge written in Rust. It exposes OpenCode Zen's public contributor tier as a standard local daemon, acting as an authentication-free drop-in replacement for both OpenAI (`/v1`) and Ollama (`/api`) APIs.
 
-OpenCode Zen hosts an authentication-free contributor tier providing free cloud GPU compute for developer tooling. However, their gateway verifies internal client signatures, header structures, Unix timestamp encodings, and tool parameters to prevent non-compliant clients.
+Downstream clients—including Open WebUI, Cursor, Continue.dev, Aider, Hermes, and the official OpenAI Python SDK—can access free cloud LLM compute without API keys, account credentials, or changes to client logic.
 
-`rudra-proxy` runs silently on your machine on port `11434` (Ollama's default port):
-1. Your tools connect to `http://localhost:11434` thinking it's standard OpenAI or Ollama.
-2. `rudra-proxy` transparently injects legitimate headers, generates authenticated `ses_...` session timestamps, handles protocol translation (Responses API, Chat Completions, or TypeSafe AI System One), and injects mandatory dummy tools behind the scenes.
-3. You get free, lightning-fast cloud LLM inference without burning through your wallet or running heavy local weights.
+### Core Capabilities
+
+- **Authentication-Free Inference:** Routes requests through OpenCode Zen's contributor tier without requiring personal API tokens or credit cards.
+- **Drop-in Wire Compatibility:** Exposes standard OpenAI Chat Completions, Responses API, Ollama (`/api/chat`, `/api/tags`, `/api/generate`), and TypeSafe AI System One decision endpoints.
+- **Automated Upstream Compliance:** Handles client header spoofing, computes valid timestamp-encoded `ses_...` session identifiers, injects mandatory dummy tools (`bash`, `read`), and forces upstream streaming.
+- **Dynamic Model Discovery:** Synchronizes active model manifests directly from OpenCode Zen with a local 13-model fallback catalog for offline reliability.
+- **Outbound Proxy Pool:** Optional HTTP and SOCKS5 proxy chaining with atomic round-robin rotation, configurable request thresholds, and per-proxy quotas.
+- **Reasoning Effort Control:** Maps downstream reasoning configurations to upstream models, supporting discrete effort levels, boolean toggles, and interleaved thought extraction.
+
+---
+
+## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│ Your Apps (Open WebUI, Cursor, Continue, Hermes, Aider, Python, etc.)  │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ OpenAI: /v1/*  |  Ollama: /api/*
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│               rudra-proxy (Listening on localhost:11434)               │
-│    Header Spoofing • Session Rotation • Protocol Dispatch • Tools      │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Direct or via SOCKS5/HTTP Proxy Pool
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   OpenCode Zen Gateway (Free AI Tier)                  │
-└────────────────────────────────────────────────────────────────────────┘
+Downstream Clients (Open WebUI, Cursor, Continue.dev, Aider, Python SDK)
+         │
+         │ OpenAI: /v1/*  |  Ollama: /api/*  |  System One: /systemone
+         ▼
+    rudra-proxy (Listening on localhost:11434)
+   ┌────────────────────────────────────────────────────────┐
+   │ Header Spoofing • Session Rotation • Protocol Dispatch │
+   │ Mandatory Dummy Tools • Reasoning Negotiation          │
+   └────────────────────────────────────────────────────────┘
+         │
+         │ Direct connection or via HTTP/SOCKS5 Proxy Pool
+         ▼
+OpenCode Zen Gateway
+   ├── Responses API        (muse-* models)
+   ├── Chat Completions API (mimo, nemotron, bunny, step, exo, ling, longcat)
+   └── System One API       (jev-1.13, jev-1.13-free)
 ```
 
 ---
 
-## 🌟 Super Easy Setup Guide (3 Minutes)
+## Quickstart
 
-Anyone can get up and running with free AI in 3 simple steps:
+### Option A: Build and Run with Cargo
 
-### Step 1: Start Rudra
-
-Choose whichever method you prefer:
-
-#### Option A: Run with Cargo (Native & Fastest)
 ```bash
-# 1. Clone and enter the folder
+# Clone the repository
 git clone https://github.com/dari-os/rudra-proxy.git
 cd rudra-proxy
 
-# 2. Build and launch (default port: 11434)
+# Build and start the server (default port: 11434)
 cargo run --release -- serve
 ```
 
-#### Option B: Run with Docker
-```bash
-# 1. Clone and enter folder
-git clone https://github.com/dari-os/rudra-proxy.git
-cd rudra-proxy
+### Option B: Run with Docker
 
-# 2. Build and start container in background
+```bash
+# Build the container image
 docker build -t rudra-proxy .
+
+# Run container in background on port 11434
 docker run -d --name rudra-proxy -p 11434:11434 rudra-proxy
 ```
 
-*(Optional)* Run the built-in diagnostic doctor to verify everything is reachable:
+### Connectivity Verification
+
+Run the built-in diagnostic suite to confirm port availability, network reachability, and session encoding integrity:
+
 ```bash
 cargo run --release -- doctor
-```
-
----
-
-### Step 2: Connect Your Favorite App
-
-Because `rudra-proxy` speaks standard OpenAI and Ollama protocols, setting it up in your favorite tools takes seconds:
-
-#### 💬 Open WebUI
-1. Go to **Settings** $\rightarrow$ **Connections**.
-2. Under **Ollama API**, ensure URL is set to `http://localhost:11434` (or `http://host.docker.internal:11434` if Open WebUI is in Docker).
-3. Click **Save** — all 13 free models will immediately populate your model picker!
-
-#### 💻 Cursor / Continue.dev / Windsurf
-1. Open settings / configuration.
-2. Select **OpenAI Compatible**.
-3. **Base URL**: `http://localhost:11434/v1`
-4. **API Key**: `public` (or any dummy text)
-5. **Model**: `default` or `mimo-v2.6-flash-free`
-
-#### 🤖 Aider
-```bash
-aider --openai-api-base http://localhost:11434/v1 --openai-api-key public --model default
-```
-
-#### 🐍 Python (Standard OpenAI SDK)
-```python
-from openai import OpenAI
-
-# Connect directly to your local rudra proxy
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="public"  # No real key needed!
-)
-
-response = client.chat.completions.create(
-    model="default",  # Routes to mimo-v2.6-flash-free
-    messages=[{"role": "user", "content": "Write a Python script to reverse a string."}],
-    stream=True
-)
-
-for chunk in response:
-    content = chunk.choices[0].delta.content or ""
-    print(content, end="", flush=True)
-```
-
-#### ⚡ Terminal REPL (Zero Tools Needed!)
-You can also chat directly from your terminal with conversation history:
-```bash
-./target/release/rudra run default
-# rudra> Hello! What models do you offer?
-# rudra> /clear (clears history)
-# rudra> exit
-```
-
----
-
-## 🤖 13 Verified Free Models (Included Out of the Box)
-
-All 13 models below are completely free to query:
-
-| Model Identifier | Provider | Architecture | Context Window | Best Suited For |
-|---|---|---|---|---|
-| `muse-spark-1.3-contributor-free` | Muse | Responses | **1,048,576 tokens** | Massive codebase refactoring & long document analysis |
-| `muse-spark-1.2-contributor-free` | Muse | Responses | **1,048,576 tokens** | 1M context analysis with deep reasoning traces |
-| `mimo-v2.6-flash-free` | Mimo | Chat | **262,144 tokens** | Ultra-fast everyday coding, agentic reasoning & chat |
-| `nemotron-3-ultra-free` | NVIDIA | Chat | **131,072 tokens** | Complex reasoning, mathematics & code generation |
-| `nemotron-3.5-lightning-free` | NVIDIA | Chat | **131,072 tokens** | High-throughput coding & fast instruction following |
-| `space-bunny-free` | BunnyAI | Chat | **131,072 tokens** | Configurable reasoning effort (low to xhigh) |
-| `step-5-preview-free` | Step | Chat | **131,072 tokens** | Multistep problem solving & reasoning |
-| `exo-free` | Exo | Chat | **131,072 tokens** | Deep high-effort reasoning traces |
-| `longcat-2.5-preview-free` | LongCat | Chat | **262,144 tokens** | Extended context workflows |
-| `ling-3.0-flash-fin-free` | Ling | Chat | **131,072 tokens** | Fast reasoning with financial & logical domain tuning |
-| `ling-3.1-flash-free` | Ling | Chat | **131,072 tokens** | General low-latency conversational tasks |
-| `jev-1.13-free` | TypeSafe AI | System One | **131,072 tokens** | Structured classification, scoring & decision engine |
-| `jev-1.13` | TypeSafe AI | System One | **131,072 tokens** | TypeSafe AI production decision model |
-
----
-
-## 🛠️ Complete CLI Command Reference
-
-The `rudra` binary provides powerful operational and debugging tools:
-
-### 1. `rudra serve`
-Runs the proxy server daemon.
-
-```bash
-rudra serve [OPTIONS]
-```
-
-* `--port <PORT>`: Listening port (default: `11434`).
-* `--host <HOST>`: Bind address (default: `0.0.0.0`).
-* `--cors <ORIGIN>`: CORS policy (default: `*`).
-* `--config <PATH>`: Path to `rudra.toml` config file.
-* `--dry-run`: Validates config, catalog loading, and port availability without starting the listener.
-* `--proxy-enabled`: Turns on the outbound forward proxy pool.
-* `--proxy <URL>...`: Forward proxy addresses (`http://`, `socks5://`).
-* `--proxy-switch-requests <N>`: Switch to the next proxy after every $N$ requests.
-* `--session-rotate-requests <N>`: Generate a fresh authenticated session ID after every $N$ requests.
-
-### 2. `rudra list`
-Inspects active models and tests live network reachability:
-
-```bash
-# Aligned terminal table
-rudra list
-
-# Actively probe upstream Zen gateway latency
-rudra list --live
-
-# Format output as Markdown
-rudra list --live --format markdown
-
-# Format output as JSON (used by CI/CD healthchecks)
-rudra list --live --format json
-```
-
-### 3. `rudra run`
-Direct execution from your terminal without opening a browser or running a separate client:
-
-```bash
-# One-shot command line prompt
-rudra run default "Explain how atomic operations work in Rust in 3 sentences."
-
-# Interactive terminal session (REPL)
-rudra run space-bunny-free --reasoning-effort high
-```
-
-### 4. `rudra doctor`
-Automatic diagnostic system check:
-
-```bash
-rudra doctor
 ```
 
 ```text
@@ -244,61 +116,208 @@ rudra doctor
 [✓] Port 11434 is available for binding on 127.0.0.1
 [✓] OpenCode Zen gateway reachable at https://opencode.ai/zen/v1/models (142ms, HTTP 200 OK)
 [✓] OpenCode catalog metadata reachable at https://models.opencode.ai/api.json (88ms)
-[✓] Session ID generator valid (generated: ses_11e02..., length: 30 chars, timestamp encoded)
+[✓] Session ID generator valid (generated: ses_..., length: 30 chars, timestamp encoded)
 
 === Doctor Summary: All essential systems operational! ===
 ```
 
-*(Tip: If you have an existing Ollama service running on port 11434, `rudra doctor` will immediately detect it and suggest passing `--port 11435` or stopping Ollama!)*
+---
 
-### 5. `rudra bench`
-Measures generation speed (tokens/sec) and Time-To-First-Token (TTFT):
+## Client Setup
+
+Because Rudra implements standard OpenAI and Ollama protocol interfaces, downstream integration requires only pointing client base URLs to `localhost:11434`.
+
+### Open WebUI
+
+1. Open **Settings** > **Connections**.
+2. Under **Ollama API**, ensure the base URL is set to `http://localhost:11434` (or `http://host.docker.internal:11434` when running Open WebUI in a container).
+3. Save settings. All 13 models populate the model selection interface automatically.
+
+### Cursor / Continue.dev / Windsurf
+
+Configure a custom OpenAI-compatible provider:
+
+- **Base URL:** `http://localhost:11434/v1`
+- **API Key:** `public` (or any non-empty string)
+- **Model:** `default` or `mimo-v2.6-flash-free`
+
+### Aider
 
 ```bash
-rudra bench space-bunny-free --prompt "Write a quick explanation of Paxos."
+aider --openai-api-base http://localhost:11434/v1 --openai-api-key public --model default
 ```
 
-### 6. `rudra config`
-Directly inspect and modify your `rudra.toml` file without opening a text editor:
+### Python (Official OpenAI SDK)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="public"
+)
+
+response = client.chat.completions.create(
+    model="default",
+    messages=[{"role": "user", "content": "Explain atomic memory ordering in Rust."}],
+    stream=True
+)
+
+for chunk in response:
+    content = chunk.choices[0].delta.content or ""
+    print(content, end="", flush=True)
+```
+
+### Terminal REPL
+
+Query models directly from your terminal with conversation history and memory:
 
 ```bash
-# View configuration
-rudra config get
-rudra config get port
-rudra config get aliases.default
+# Interactive multi-turn REPL
+rudra run default
 
-# Change settings
-rudra config set port 11435
-rudra config set overrides.space-bunny-free.reasoning_effort high
-
-# Add a SOCKS5 proxy with a 50-request quota
-rudra config add-proxy socks5://127.0.0.1:9050 --requests 50
+# One-shot command line evaluation
+rudra run default "Explain how atomic operations work in Rust in 3 sentences."
 ```
 
 ---
 
-## ⚙️ Configuration Reference (`rudra.toml`)
+## Model Catalog
 
-Copy `rudra.toml.example` to `rudra.toml` to customize your setup:
+The proxy includes 13 verified, active models out of the box:
+
+| Model Identifier | Provider | Upstream Protocol | Context Window | Primary Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| `muse-spark-1.3-contributor-free` | Muse | Responses | 1,048,576 tokens | High-context repository refactoring and document analysis |
+| `muse-spark-1.2-contributor-free` | Muse | Responses | 1,048,576 tokens | Extended context reasoning with configurable effort |
+| `mimo-v2.6-flash-free` | Mimo | Chat | 262,144 tokens | Low-latency coding, agent execution, default alias target |
+| `nemotron-3-ultra-free` | NVIDIA | Chat | 131,072 tokens | Complex logic, mathematics, interleaved reasoning traces |
+| `nemotron-3.5-lightning-free` | NVIDIA | Chat | 131,072 tokens | High-throughput instruction following and code generation |
+| `space-bunny-free` | BunnyAI | Chat | 131,072 tokens | Configurable reasoning effort (`low` to `xhigh`) |
+| `step-5-preview-free` | Step | Chat | 131,072 tokens | Multistep problem solving and structured generation |
+| `exo-free` | Exo | Chat | 131,072 tokens | Deep reasoning with enforcement of high effort |
+| `longcat-2.5-preview-free` | LongCat | Chat | 262,144 tokens | Long-context dialogue and document synthesis |
+| `ling-3.0-flash-fin-free` | Ling | Chat | 131,072 tokens | Fast reasoning with financial and domain specialization |
+| `ling-3.1-flash-free` | Ling | Chat | 131,072 tokens | Low-latency general conversation and instruction tasks |
+| `jev-1.13-free` | TypeSafe AI | System One | 131,072 tokens | Structured state analysis, scoring, and decision matrices |
+| `jev-1.13` | TypeSafe AI | System One | 131,072 tokens | Production System One decision evaluation engine |
+
+---
+
+## CLI Reference
+
+The `rudra` binary provides operational subcommands for server hosting, diagnostic testing, model querying, and configuration management:
+
+### `rudra serve`
+
+Starts the proxy server daemon.
+
+```bash
+rudra serve [OPTIONS]
+```
+
+- `--port <PORT>`: Socket bind port (default: `11434`).
+- `--host <HOST>`: Socket bind address (default: `0.0.0.0`).
+- `--cors <ORIGIN>`: Allowed CORS origin (default: `*`).
+- `--config <PATH>`: Path to local `rudra.toml` configuration file.
+- `--workers <NUM>`: Tokio runtime worker thread pool size.
+- `--timeout <SECS>`: Upstream HTTP request timeout in seconds (default: `120`).
+- `--log-level <LEVEL>`: Log filter level (`trace`, `debug`, `info`, `warn`, `error`).
+- `--dry-run`: Validates configuration, catalog cache, and socket binding without listening.
+- `--proxy-enabled`: Activates the outbound forward proxy pool.
+- `--proxy <URL>...`: Forward proxy addresses (`http://`, `socks5://`).
+- `--proxy-switch-requests <N>`: Global request threshold before rotating to the next proxy node.
+- `--session-rotate-requests <N>`: Frequency of `ses_...` session ID regeneration (default: `10`).
+
+### `rudra list`
+
+Inspects registered models and evaluates upstream network status.
+
+```bash
+# Print formatted terminal table
+rudra list
+
+# Actively probe upstream Zen gateway response latencies
+rudra list --live
+
+# Output structured markdown or JSON
+rudra list --live --format markdown
+rudra list --live --format json
+```
+
+### `rudra run`
+
+Executes prompts directly against the upstream gateway.
+
+```bash
+# Start an interactive multi-turn REPL
+rudra run default
+
+# Run with explicit reasoning effort
+rudra run space-bunny-free --reasoning-effort high
+
+# Non-interactive command-line query
+rudra run default "Explain how atomic operations work in Rust in 3 sentences."
+```
+
+### `rudra doctor`
+
+Runs an automated connectivity and health check across socket binding, upstream gateways, catalog metadata, and session generator encoding.
+
+```bash
+rudra doctor
+```
+
+### `rudra bench`
+
+Evaluates generation throughput (tokens/second) and Time-To-First-Token (TTFT) for a specified model.
+
+```bash
+rudra bench space-bunny-free --prompt "Summarize the Raft consensus protocol."
+```
+
+### `rudra config`
+
+Inspects and updates `rudra.toml` non-destructively from the command line.
+
+```bash
+# Read configuration values
+rudra config get port
+rudra config get aliases.default
+
+# Modify configuration values
+rudra config set port 11435
+rudra config set overrides.space-bunny-free.reasoning_effort high
+
+# Manage forward proxy pool nodes
+rudra config add-proxy socks5://127.0.0.1:9050 --requests 50
+rudra config remove-proxy socks5://127.0.0.1:9050
+```
+
+---
+
+## Configuration
+
+Rudra looks for a `rudra.toml` file in the current working directory, or at the path provided to `--config`. A template is provided in `rudra.toml.example`.
 
 ```toml
 # Network settings
 host = "0.0.0.0"
-port = 11434                  # Default Ollama drop-in port
+port = 11434
 cors = "*"
 timeout_secs = 120
 log_level = "info"
 
-# Model aliases: shorthand names for your clients
+# Model aliases: map user-friendly identifiers to target models
 [aliases]
 "default" = "mimo-v2.6-flash-free"
 "jev" = "jev-1.13-free"
 
-# Fine-tune reasoning effort per model (optional)
+# Fine-tune reasoning effort per model
 [overrides."space-bunny-free"]
 reasoning_effort = "high"
 
-# Outbound forward proxy pool (optional)
+# Outbound forward proxy pool (HTTP / SOCKS5)
 [proxy]
 enabled = false
 switch_after_requests = 100
@@ -307,16 +326,17 @@ proxies = [
     # "socks5://127.0.0.1:9050",
 ]
 
-# Session rotation (fresh ses_... ID every N requests)
+# Session rotation: renews ses_... ID every N requests
 [session]
 rotate_after_requests = 10
 ```
 
 ---
 
-## 🐳 Docker & Container Deployment
+## Deployment
 
-### Simple Container Run
+### Docker Run
+
 ```bash
 docker build -t rudra-proxy .
 docker run -d \
@@ -327,6 +347,7 @@ docker run -d \
 ```
 
 ### Docker Compose
+
 ```yaml
 services:
   rudra-proxy:
@@ -341,6 +362,6 @@ services:
 
 ---
 
-## 📜 Disclaimer & Terms of Service
+## Disclaimer
 
-`rudra-proxy` is an open-source experimental research project for protocol interoperability. Please review [DISCLAIMER.md](DISCLAIMER.md) for statutory AS-IS warranty disclaimers, complete limitation of liability, and terms regarding third-party service compliance.
+Rudra is an open-source experimental research project developed for protocol interoperability testing and educational research. Please refer to [DISCLAIMER.md](DISCLAIMER.md) for statutory terms, limitations of liability, and third-party terms of service compliance requirements.
