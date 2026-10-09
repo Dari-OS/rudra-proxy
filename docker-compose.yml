@@ -3,8 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: rudra-proxy:latest
-    pull_policy: build
+    image: ghcr.io/dari-os/rudra-proxy:latest
     container_name: rudra-proxy
     restart: unless-stopped
     ports:
