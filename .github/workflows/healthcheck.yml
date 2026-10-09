@@ -3,6 +3,12 @@ name: Daily Upstream Healthcheck
 on:
   schedule:
     - cron: '0 0 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - 'openapi.json'
+      - '.github/workflows/healthcheck.yml'
   workflow_dispatch:
 
 permissions:
@@ -200,6 +206,10 @@ jobs:
                     Rudra Proxy
                   </h1>
                   <div class="meta" style="margin-top: 6px;">Universal AI Proxy Bridge & Drop-in Replacement</div>
+                  <nav style="display: flex; gap: 16px; margin-top: 10px;">
+                    <a href="." style="color: var(--text); font-weight: 600; text-decoration: none;">Live Status</a>
+                    <a href="docs/" style="color: var(--accent); font-weight: 500; text-decoration: none;">API Reference (Scalar) &rarr;</a>
+                  </nav>
                 </div>
                 <div style="text-align: right;">
                   <span class="badge" id="status-badge">Operational</span>
@@ -261,6 +271,34 @@ jobs:
                 });
             </script>
           </body>
+          </html>
+          EOF
+
+      - name: Deploy Scalar Documentation and OpenAPI Specification
+        run: |
+          mkdir -p public/docs
+          cp openapi.json public/openapi.json
+          cat << 'EOF' > public/docs/index.html
+          <!doctype html>
+          <html>
+            <head>
+              <title>Rudra Proxy — API Reference</title>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <style>
+                body {
+                  margin: 0;
+                  padding: 0;
+                }
+              </style>
+            </head>
+            <body>
+              <script
+                id="api-reference"
+                data-url="../openapi.json"
+                data-configuration='{"theme":"purple","layout":"modern","hideTestRequestButton":true}'></script>
+              <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+            </body>
           </html>
           EOF
 

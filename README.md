@@ -250,10 +250,12 @@ Rudra implements the full OpenAI chat completion specification and seamlessly tr
 
 ## Interactive API Documentation (Scalar)
 
-When the server is running, an interactive API reference with live request samples in cURL, Python, and JavaScript is available directly in your browser:
+You can explore the full OpenAPI 3.1 specification, parameter schemas, and request examples in two ways:
 
-- **Interactive Scalar UI:** [`http://localhost:11434/docs`](http://localhost:11434/docs)
-- **OpenAPI 3.1 Specification:** [`http://localhost:11434/openapi.json`](http://localhost:11434/openapi.json)
+- **Online API Reference (GitHub Pages):** [`https://dari-os.github.io/rudra-proxy/docs/`](https://dari-os.github.io/rudra-proxy/docs/)  
+  *Static reference viewer without needing a running backend. Testing buttons are disabled.*
+- **Local Interactive UI (When server is running):** [`http://localhost:11434/docs`](http://localhost:11434/docs)  
+- **OpenAPI 3.1 JSON Specification:** [`http://localhost:11434/openapi.json`](http://localhost:11434/openapi.json)
 
 ---
 

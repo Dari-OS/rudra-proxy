@@ -1,0 +1,412 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Rudra Proxy API Reference",
+    "version": "0.1.0",
+    "description": "Universal AI Proxy Bridge & Drop-in Replacement for OpenAI, Ollama, and TypeSafe AI System One APIs, powered by OpenCode Zen's free frontier models.\n\n### Interactive Static Preview\nThis static documentation is deployed to GitHub Pages without a running backend. To execute live requests, launch a local Rudra instance via `cargo run --release -- serve` or `docker compose up -d` on `http://localhost:11434`."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:11434",
+      "description": "Local Rudra Proxy server"
+    }
+  ],
+  "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "summary": "Create Chat Completion",
+        "description": "Executes streaming SSE or standard JSON chat completion across free frontier models. Rudra transparently handles header spoofing, session rotation, mandatory dummy tools (`bash`, `read`), reasoning effort negotiation, and protocol translation (Chat Completions, Responses API, and System One).",
+        "operationId": "createChatCompletion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful completion or Server-Sent Events (SSE) stream if stream=true",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events formatted as data: { ... } ending with data: [DONE]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request / Invalid Parameters"
+          },
+          "401": {
+            "description": "Unauthorized (if downstream API key is configured)"
+          },
+          "502": {
+            "description": "Bad Gateway / Upstream Zen Error"
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "List Models",
+        "description": "Lists all active models available through the OpenCode Zen gateway alongside configured local aliases (`default`, `gpt-4o`, `claude-3-5-sonnet`, `jev`).",
+        "operationId": "listModels",
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible list of models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": { "type": "string", "example": "list" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "example": "mimo-v2.6-flash-free" },
+                          "object": { "type": "string", "example": "model" },
+                          "created": { "type": "integer" },
+                          "owned_by": { "type": "string", "example": "opencode" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models/{model}": {
+      "get": {
+        "summary": "Retrieve Model Metadata",
+        "description": "Retrieves metadata and specifications for a specific model identifier or alias.",
+        "operationId": "retrieveModel",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Target model identifier (e.g. 'mimo-v2.6-flash-free', 'default')"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Model metadata"
+          },
+          "404": {
+            "description": "Model not found"
+          }
+        }
+      }
+    },
+    "/v1/models/sync": {
+      "post": {
+        "summary": "Trigger Catalog Sync",
+        "description": "Forces an immediate refresh of the model catalog from `https://opencode.ai/zen/v1/models` and `https://models.opencode.ai/api.json`.",
+        "operationId": "syncModels",
+        "responses": {
+          "200": {
+            "description": "Synchronization status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "synced" },
+                    "models_count": { "type": "integer", "example": 13 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/systemone": {
+      "post": {
+        "summary": "Evaluate System One Decision",
+        "description": "Direct evaluation endpoint for TypeSafe AI System One decision models (`jev-1.13`, `jev-1.13-free`). Evaluates structured states against `noul` (reasoning), `choice` (categorical selection), or `score` (confidence float) questions.",
+        "operationId": "evaluateSystemOne",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["state", "questions"],
+                "properties": {
+                  "model": { "type": "string", "default": "jev-1.13-free" },
+                  "state": { "type": "object", "description": "Arbitrary contextual state or problem description" },
+                  "questions": { "type": "object", "description": "Map of questions to evaluate" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision answers"
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "summary": "Ollama Chat Completion",
+        "description": "NDJSON streaming chat endpoint fully compatible with Ollama CLI and Open WebUI.",
+        "operationId": "ollamaChat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["model", "messages"],
+                "properties": {
+                  "model": { "type": "string" },
+                  "messages": { "type": "array", "items": { "type": "object" } },
+                  "stream": { "type": "boolean", "default": true },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "temperature": { "type": "number" },
+                      "top_p": { "type": "number" },
+                      "num_predict": { "type": "integer", "description": "Mapped to max_tokens" },
+                      "stop": { "type": "array", "items": { "type": "string" } },
+                      "presence_penalty": { "type": "number" },
+                      "frequency_penalty": { "type": "number" },
+                      "seed": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NDJSON stream of chat responses"
+          }
+        }
+      }
+    },
+    "/api/generate": {
+      "post": {
+        "summary": "Ollama Prompt Generation",
+        "description": "Translates prompt completions into conversational chat format for Ollama clients.",
+        "operationId": "ollamaGenerate",
+        "responses": {
+          "200": {
+            "description": "NDJSON generation stream"
+          }
+        }
+      }
+    },
+    "/api/tags": {
+      "get": {
+        "summary": "List Ollama Tags",
+        "description": "Returns active models formatted according to Ollama's `/api/tags` schema with simulated GGUF details.",
+        "operationId": "ollamaTags",
+        "responses": {
+          "200": {
+            "description": "Ollama tags response"
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "summary": "Ollama Version",
+        "description": "Simulated version endpoint returning `{\"version\": \"0.1.32\"}` for client healthchecks.",
+        "operationId": "ollamaVersion",
+        "responses": {
+          "200": {
+            "description": "Version object"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Service Health Check",
+        "description": "Returns proxy operational health status and version metadata.",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "service": { "type": "string", "example": "rudra-proxy" },
+                    "version": { "type": "string", "example": "0.1.0" },
+                    "provider": { "type": "string", "example": "opencode-zen" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": ["messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "default": "mimo-v2.6-flash-free",
+            "description": "Target model identifier or alias (`default`, `gpt-4o`, `mimo-v2.6-flash-free`, `muse-spark-1.3-contributor-free`, `nemotron-3-ultra-free`, `space-bunny-free`, etc.)."
+          },
+          "messages": {
+            "type": "array",
+            "description": "Array of messages forming the conversation history.",
+            "items": {
+              "type": "object",
+              "required": ["role", "content"],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["system", "user", "assistant", "tool"],
+                  "description": "Role of the message author."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Contents of the message."
+                }
+              }
+            }
+          },
+          "stream": {
+            "type": "boolean",
+            "default": false,
+            "description": "If set, partial message deltas will be sent as Server-Sent Events (SSE). Non-streaming requests are collected upstream and returned as a single JSON response."
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 2.0,
+            "description": "What sampling temperature to use, between 0 and 2. Higher values like 0.8 make output more random, while lower values like 0.2 make it more focused and deterministic."
+          },
+          "top_p": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+          },
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The maximum number of tokens that can be generated in the chat completion. Generation stops with `finish_reason: \"length\"` when reached."
+          },
+          "max_completion_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Modern OpenAI specification parameter for output token limits (takes precedence over `max_tokens` if specified)."
+          },
+          "stop": {
+            "description": "Up to 4 sequences where the API will stop generating further tokens.",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "presence_penalty": {
+            "type": "number",
+            "minimum": -2.0,
+            "maximum": 2.0,
+            "default": 0.0,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics."
+          },
+          "frequency_penalty": {
+            "type": "number",
+            "minimum": -2.0,
+            "maximum": 2.0,
+            "default": 0.0,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim."
+          },
+          "seed": {
+            "type": "integer",
+            "description": "If specified, upstream sampling will make a best-effort effort to sample deterministically."
+          },
+          "response_format": {
+            "type": "object",
+            "description": "An object specifying the format that the model must output. Compatible with JSON mode (`{\"type\": \"json_object\"}`)."
+          },
+          "reasoning_effort": {
+            "type": "string",
+            "enum": ["minimal", "low", "medium", "high", "xhigh"],
+            "description": "Constrains thinking/reasoning effort for reasoning models. For Responses API (`muse-*`), translated to `\"reasoning\": { \"effort\": \"...\" }`. For `space-bunny-free` and `step-5`, passed as `reasoning_effort`. For boolean toggle models, mapped to a toggle."
+          },
+          "tools": {
+            "type": "array",
+            "items": { "type": "object" },
+            "description": "List of function tools the model may call. Automatically blended with the gateway's mandatory dummy tools (`bash`, `read`)."
+          },
+          "tool_choice": {
+            "description": "Controls which (if any) tool is called by the model (`none`, `auto`, `required`, or a specific function object)."
+          },
+          "user": {
+            "type": "string",
+            "description": "A unique identifier representing your end-user, which can help monitor and detect abuse."
+          }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "object": { "type": "string", "example": "chat.completion" },
+          "created": { "type": "integer" },
+          "model": { "type": "string" },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": { "type": "integer" },
+                "message": {
+                  "type": "object",
+                  "properties": {
+                    "role": { "type": "string", "example": "assistant" },
+                    "content": { "type": "string" },
+                    "reasoning_content": { "type": "string" }
+                  }
+                },
+                "finish_reason": { "type": "string", "example": "stop" }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "prompt_tokens": { "type": "integer" },
+              "completion_tokens": { "type": "integer" },
+              "total_tokens": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
