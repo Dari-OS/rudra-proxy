@@ -61,6 +61,38 @@ impl ModelProtocol {
         false
     }
 
+    /// Checks whether a model belongs to the OpenAI Responses API family (e.g. Muse).
+    pub fn is_responses(
+        id: &str,
+        family: Option<&str>,
+        description: Option<&str>,
+    ) -> bool {
+        let id_lower = id.to_ascii_lowercase();
+        if id_lower.starts_with("muse")
+            || id_lower.contains("muse-")
+            || id_lower.contains("-muse")
+            || id_lower.contains("responses")
+        {
+            return true;
+        }
+
+        if let Some(fam) = family {
+            let fam_lower = fam.to_ascii_lowercase();
+            if fam_lower.contains("muse") || fam_lower.contains("responses") {
+                return true;
+            }
+        }
+
+        if let Some(desc) = description {
+            let desc_lower = desc.to_ascii_lowercase();
+            if desc_lower.contains("responses api") || desc_lower.contains("muse") {
+                return true;
+            }
+        }
+
+        false
+    }
+
     /// Automatically detects the protocol wire format based on model identifiers and metadata.
     pub fn detect(
         id: &str,
@@ -68,7 +100,7 @@ impl ModelProtocol {
         description: Option<&str>,
         owned_by: Option<&str>,
     ) -> Self {
-        if id.starts_with("muse-") {
+        if Self::is_responses(id, family, description) {
             ModelProtocol::Responses
         } else if Self::is_system_one(id, family, description, owned_by) {
             ModelProtocol::SystemOne
@@ -135,5 +167,14 @@ mod tests {
         // Other protocols
         assert_eq!(ModelProtocol::detect("muse-spark-1.3", None, None, None), ModelProtocol::Responses);
         assert_eq!(ModelProtocol::detect("mimo-v2.6-flash-free", None, None, None), ModelProtocol::ChatCompletions);
+    }
+
+    #[test]
+    fn test_responses_model_auto_detection() {
+        assert_eq!(ModelProtocol::detect("muse-spark-1.3-contributor-free", None, None, None), ModelProtocol::Responses);
+        assert_eq!(ModelProtocol::detect("muse-v2", None, None, None), ModelProtocol::Responses);
+        assert_eq!(ModelProtocol::detect("contributor-muse-preview", None, None, None), ModelProtocol::Responses);
+        assert_eq!(ModelProtocol::detect("experimental-model", Some("muse"), None, None), ModelProtocol::Responses);
+        assert_eq!(ModelProtocol::detect("custom-llm", None, Some("OpenAI responses api model"), None), ModelProtocol::Responses);
     }
 }
