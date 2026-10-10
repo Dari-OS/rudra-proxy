@@ -127,6 +127,56 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
     input
 }
 
+/// Normalizes tool definitions for the Responses API (`/zen/v1/responses`),
+/// where function tools must have `name`, `description`, `parameters` flattened
+/// directly under the tool object rather than wrapped in a `function` object.
+pub fn normalize_tool_for_responses(t: &Value) -> (Value, String) {
+    if let Some(func) = t.get("function") {
+        let name = func.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+        let desc = func.get("description").cloned().unwrap_or(Value::String(String::new()));
+        let params = func.get("parameters").cloned().unwrap_or(json!({"type": "object", "properties": {}}));
+        let mut converted = json!({
+            "type": "function",
+            "name": name,
+            "description": desc,
+            "parameters": params
+        });
+        if let Some(strict) = func.get("strict") {
+            converted["strict"] = strict.clone();
+        }
+        (converted, name)
+    } else {
+        let name = t.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+        (t.clone(), name)
+    }
+}
+
+/// Normalizes tool definitions for standard OpenAI Chat Completions API (`/zen/v1/chat/completions`),
+/// where tools are wrapped as `{"type": "function", "function": { ... }}`.
+pub fn normalize_tool_for_chat(t: &Value) -> (Value, String) {
+    if let Some(func) = t.get("function") {
+        let name = func.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+        (t.clone(), name)
+    } else if let Some(name) = t.get("name").and_then(|n| n.as_str()) {
+        let desc = t.get("description").cloned().unwrap_or(Value::String(String::new()));
+        let params = t.get("parameters").cloned().unwrap_or(json!({"type": "object", "properties": {}}));
+        let mut wrapped = json!({
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": desc,
+                "parameters": params
+            }
+        });
+        if let Some(strict) = t.get("strict") {
+            wrapped["function"]["strict"] = strict.clone();
+        }
+        (wrapped, name.to_string())
+    } else {
+        (t.clone(), String::new())
+    }
+}
+
 /// Builds the OpenCode Zen request payload appropriate for the model's protocol,
 /// injecting mandatory dummy tools and proper reasoning configurations.
 pub fn build_opencode_payload(
@@ -158,14 +208,14 @@ pub fn build_opencode_payload(
 
             if let Some(ref client_tools) = req.tools {
                 for t in client_tools {
-                    let name = t.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                    let (normalized, name) = normalize_tool_for_responses(t);
                     if name == "bash" {
                         has_bash = true;
                     }
                     if name == "read" {
                         has_read = true;
                     }
-                    tools.push(t.clone());
+                    tools.push(normalized);
                 }
             }
 
@@ -230,19 +280,14 @@ pub fn build_opencode_payload(
 
             if let Some(ref client_tools) = req.tools {
                 for t in client_tools {
-                    let name = t
-                        .get("function")
-                        .and_then(|f| f.get("name"))
-                        .and_then(|n| n.as_str())
-                        .or_else(|| t.get("name").and_then(|n| n.as_str()))
-                        .unwrap_or("");
+                    let (normalized, name) = normalize_tool_for_chat(t);
                     if name == "bash" {
                         has_bash = true;
                     }
                     if name == "read" {
                         has_read = true;
                     }
-                    tools.push(t.clone());
+                    tools.push(normalized);
                 }
             }
 

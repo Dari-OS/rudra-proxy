@@ -391,3 +391,41 @@ fn test_openai_tool_chunk_and_terminal_chunk_robustness() {
     assert!(term.contains("\"finish_reason\":\"stop\""));
     assert!(term.ends_with("\n\ndata: [DONE]\n\n"));
 }
+
+#[test]
+fn test_tool_normalization_responses_and_chat() {
+    let standard_openai_tool = json!({
+        "type": "function",
+        "function": {
+            "name": "calculator",
+            "description": "Calculate math expressions",
+            "parameters": {
+                "type": "object",
+                "properties": { "expr": { "type": "string" } }
+            }
+        }
+    });
+
+    let (for_responses, name_resp) = rudra_proxy::upstream::payload::normalize_tool_for_responses(&standard_openai_tool);
+    assert_eq!(name_resp, "calculator");
+    assert_eq!(for_responses["name"], "calculator");
+    assert_eq!(for_responses["description"], "Calculate math expressions");
+    assert!(for_responses.get("function").is_none());
+
+    let flat_responses_tool = json!({
+        "type": "function",
+        "name": "search_db",
+        "description": "Search database",
+        "parameters": {
+            "type": "object",
+            "properties": { "query": { "type": "string" } }
+        }
+    });
+
+    let (for_chat, name_chat) = rudra_proxy::upstream::payload::normalize_tool_for_chat(&flat_responses_tool);
+    assert_eq!(name_chat, "search_db");
+    assert_eq!(for_chat["type"], "function");
+    assert_eq!(for_chat["function"]["name"], "search_db");
+    assert_eq!(for_chat["function"]["description"], "Search database");
+}
+
