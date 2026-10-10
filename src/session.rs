@@ -139,18 +139,22 @@ impl SessionManager {
             return SessionId::generate();
         }
 
-        let count = self.counter.fetch_add(1, Ordering::Relaxed);
+        let count = self.counter.fetch_add(1, Ordering::SeqCst);
         if count >= self.rotate_after_requests {
-            self.counter.store(1, Ordering::Relaxed);
-            let new_session = SessionId::generate();
             let mut lock = self.current_session.write().await;
-            *lock = new_session.clone();
-            tracing::info!(
-                new_session = %new_session,
-                after_requests = self.rotate_after_requests,
-                "Rotated OpenCode session ID"
-            );
-            new_session
+            if self.counter.load(Ordering::SeqCst) >= self.rotate_after_requests {
+                self.counter.store(1, Ordering::SeqCst);
+                let new_session = SessionId::generate();
+                *lock = new_session.clone();
+                tracing::info!(
+                    new_session = %new_session,
+                    after_requests = self.rotate_after_requests,
+                    "Rotated OpenCode session ID"
+                );
+                new_session
+            } else {
+                lock.clone()
+            }
         } else {
             let lock = self.current_session.read().await;
             lock.clone()

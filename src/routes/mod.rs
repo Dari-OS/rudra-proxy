@@ -56,6 +56,7 @@ pub fn create_router_with_cors(
         .route("/api/system-one", post(systemone::evaluate_systemone))
         .nest("/v1", openai::router())
         .nest("/api", ollama::router())
+        .layer(axum::extract::DefaultBodyLimit::max(64 * 1024 * 1024))
         .layer(auth_layer)
         .layer(log_layer)
         .layer(cors_layer)

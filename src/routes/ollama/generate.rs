@@ -157,6 +157,7 @@ pub async fn generate(
 
         tokio::spawn(async move {
             let mut sent_done = false;
+            let mut had_error = false;
 
             while let Some(event_res) = event_stream.next().await {
                 match event_res {
@@ -178,6 +179,10 @@ pub async fn generate(
                         }
 
                         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&event.data) {
+                            if v.get("error").is_some() {
+                                error!(error = %event.data, "Upstream stream returned error chunk in Ollama generate");
+                                had_error = true;
+                            }
                             let delta_text = match protocol {
                                 ModelProtocol::Responses => {
                                     if v.get("type").and_then(|t| t.as_str())
@@ -212,11 +217,15 @@ pub async fn generate(
                             }
                         }
                     }
-                    Err(_) => break,
+                    Err(err) => {
+                        error!(error = %err, "Upstream event stream disconnected with error in Ollama generate");
+                        had_error = true;
+                        break;
+                    }
                 }
             }
 
-            if !sent_done {
+            if !sent_done && !had_error {
                 let final_chunk = json!({
                     "model": model_tag,
                     "created_at": Utc::now().to_rfc3339(),
