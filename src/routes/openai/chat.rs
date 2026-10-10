@@ -268,6 +268,25 @@ pub async fn chat_completions(
                                             sent_terminal = true;
                                             break;
                                         }
+                                        "response.incomplete" => {
+                                            let reason = v.get("response")
+                                                .and_then(|r| r.get("incomplete_details"))
+                                                .and_then(|d| d.get("reason"))
+                                                .and_then(|r| r.as_str());
+                                            let finish = if reason == Some("max_output_tokens") {
+                                                "length"
+                                            } else {
+                                                "stop"
+                                            };
+                                            let chunk = make_openai_terminal_chunk(
+                                                &completion_id,
+                                                &model_name,
+                                                Some(finish),
+                                            );
+                                            let _ = tx.send(Ok(chunk)).await;
+                                            sent_terminal = true;
+                                            break;
+                                        }
                                         _ => {}
                                     }
                                 }
@@ -369,6 +388,18 @@ pub async fn chat_completions(
                                                 }
                                             }
                                         }
+                                }
+                                "response.incomplete" => {
+                                    let reason = v.get("response")
+                                        .and_then(|r| r.get("incomplete_details"))
+                                        .and_then(|d| d.get("reason"))
+                                        .and_then(|r| r.as_str());
+                                    let finish = if reason == Some("max_output_tokens") {
+                                        "length"
+                                    } else {
+                                        "stop"
+                                    };
+                                    reported_finish_reason = Some(finish.to_string());
                                 }
                                 _ => {}
                             }
