@@ -64,12 +64,7 @@ async fn test_auth_middleware_fuzzing_and_bypass_resistance() {
     let upstream = UpstreamClient::new(proxy_pool, "public".to_string());
     let session_manager = SessionManager::new(10);
 
-    let state = AppState {
-        client,
-        registry,
-        upstream,
-        session_manager,
-    };
+    let state = AppState::new(client, registry, upstream, session_manager);
 
     let app = create_router(state, Some("super-secret-key-123".to_string()));
 

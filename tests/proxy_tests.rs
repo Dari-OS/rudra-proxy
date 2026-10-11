@@ -121,12 +121,7 @@ async fn test_routes_health_and_version() {
     let proxy_pool = ProxyPool::new(&config.proxy, client.clone());
     let upstream = UpstreamClient::new(proxy_pool, "public".to_string());
     let session_manager = SessionManager::new(1);
-    let state = AppState {
-        client,
-        registry,
-        upstream,
-        session_manager,
-    };
+    let state = AppState::new(client, registry, upstream, session_manager);
     let app = create_router(state, None);
 
     // GET /health
@@ -243,12 +238,7 @@ async fn test_auth_middleware() {
     let proxy_pool = ProxyPool::new(&config.proxy, client.clone());
     let upstream = UpstreamClient::new(proxy_pool, "public".to_string());
     let session_manager = SessionManager::new(1);
-    let state = AppState {
-        client,
-        registry,
-        upstream,
-        session_manager,
-    };
+    let state = AppState::new(client, registry, upstream, session_manager);
     let app = create_router(state, Some("secret123".to_string()));
 
     // /health should be accessible without auth

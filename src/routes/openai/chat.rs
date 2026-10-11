@@ -51,32 +51,12 @@ pub async fn chat_completions(
 
     // Bridge for System One evaluation models (e.g. jev-*)
     if model_meta.protocol == ModelProtocol::SystemOne {
-        let mut user_prompt = String::new();
-        for msg in &payload.messages {
-            if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
-                if !user_prompt.is_empty() {
-                    user_prompt.push_str("\n\n");
-                }
-                user_prompt.push_str(content);
-            }
-        }
-
-        let questions = if let Some(q) = payload.extra.get("questions") {
-            q.clone()
-        } else {
-            json!({
-                "decision": {
-                    "type": "noul",
-                    "instructions": "Evaluate the state against the query"
-                }
-            })
-        };
-
-        let sys_payload = json!({
-            "model": model_meta.id,
-            "state": user_prompt,
-            "questions": questions
-        });
+        let sys_adapter = crate::models::systemone::SystemOneAdapter;
+        let sys_payload = sys_adapter.build_chat_bridge_payload(
+            &model_meta.id,
+            &payload.messages,
+            payload.extra.get("questions"),
+        );
 
         let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
             Ok(res) => res,
@@ -101,10 +81,10 @@ pub async fn chat_completions(
                 .into_response();
         }
 
-        let sys_result: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap_or_else(|_| json!({}));
+        let formatted_text = sys_adapter
+            .format_evaluation_response(&body_bytes)
+            .unwrap_or_default();
         let completion_id = generate_completion_id();
-        let answer_obj = sys_result.get("answers").unwrap_or(&sys_result);
-        let formatted_text = serde_json::to_string_pretty(answer_obj).unwrap_or_default();
 
         return if payload.stream {
             let chunk1 = make_openai_chunk(&completion_id, &payload.model, Some(&formatted_text), None);
@@ -168,7 +148,7 @@ pub async fn chat_completions(
     if payload.stream {
         let (tx, rx) = mpsc::channel::<Result<String, std::convert::Infallible>>(128);
         let mut event_stream = response.bytes_stream().eventsource();
-        let protocol = model_meta.protocol;
+        let adapter = state.adapters.get_adapter(&model_meta);
 
         tokio::spawn(async move {
             let mut sent_terminal = false;
@@ -182,15 +162,12 @@ pub async fn chat_completions(
                             continue;
                         }
                         if event.data == "[DONE]" {
-                            match protocol {
-                                ModelProtocol::ChatCompletions => {
-                                    let _ = tx.send(Ok("data: [DONE]\n\n".to_string())).await;
-                                }
-                                _ => {
-                                    let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
-                                    let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
-                                    let _ = tx.send(Ok(chunk)).await;
-                                }
+                            if adapter.protocol() == ModelProtocol::ChatCompletions {
+                                let _ = tx.send(Ok("data: [DONE]\n\n".to_string())).await;
+                            } else {
+                                let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
+                                let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
+                                let _ = tx.send(Ok(chunk)).await;
                             }
                             sent_terminal = true;
                             break;
@@ -201,103 +178,48 @@ pub async fn chat_completions(
                                 error!(error = %event.data, "Upstream stream returned error chunk");
                                 had_error = true;
                             }
-                            match protocol {
-                                ModelProtocol::Responses => {
-                                    let event_type =
-                                        v.get("type").and_then(|t| t.as_str()).unwrap_or("");
-                                    match event_type {
-                                        "response.output_text.delta" => {
-                                            if let Some(delta) =
-                                                v.get("delta").and_then(|d| d.as_str())
-                                            {
-                                                let chunk = make_openai_chunk(
-                                                    &completion_id,
-                                                    &model_name,
-                                                    Some(delta),
-                                                    None,
-                                                );
-                                                if tx.send(Ok(chunk)).await.is_err() {
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        "response.output_item.added" => {
-                                            if let Some(item) = v.get("item")
-                                                && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                                                    has_tool_calls = true;
-                                                    let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                                    let call_id = item.get("call_id").and_then(|c| c.as_str());
-                                                    let name = item.get("name").and_then(|n| n.as_str());
-                                                    let chunk = make_openai_tool_chunk(
-                                                        &completion_id,
-                                                        &model_name,
-                                                        idx,
-                                                        call_id,
-                                                        name,
-                                                        Some(""),
-                                                    );
-                                                    if tx.send(Ok(chunk)).await.is_err() {
-                                                        break;
-                                                    }
-                                                }
-                                        }
-                                        "response.function_call_arguments.delta" => {
-                                            has_tool_calls = true;
-                                            let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                            let delta = v.get("delta").and_then(|d| d.as_str()).unwrap_or("");
-                                            let chunk = make_openai_tool_chunk(
-                                                &completion_id,
-                                                &model_name,
-                                                idx,
-                                                None,
-                                                None,
-                                                Some(delta),
-                                            );
-                                            if tx.send(Ok(chunk)).await.is_err() {
-                                                break;
-                                            }
-                                        }
-                                        "response.completed" => {
-                                            let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
-                                            let chunk = make_openai_terminal_chunk(
-                                                &completion_id,
-                                                &model_name,
-                                                finish,
-                                            );
-                                            let _ = tx.send(Ok(chunk)).await;
-                                            sent_terminal = true;
+
+                            if adapter.protocol() == ModelProtocol::Responses {
+                                let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                                if let Some(delta) = adapter.parse_stream_event(event_type, &v) {
+                                    if let Some(content) = delta.content {
+                                        let chunk = make_openai_chunk(&completion_id, &model_name, Some(&content), None);
+                                        if tx.send(Ok(chunk)).await.is_err() {
                                             break;
                                         }
-                                        "response.incomplete" => {
-                                            let reason = v.get("response")
-                                                .and_then(|r| r.get("incomplete_details"))
-                                                .and_then(|d| d.get("reason"))
-                                                .and_then(|r| r.as_str());
-                                            let finish = if reason == Some("max_output_tokens") {
-                                                "length"
-                                            } else {
-                                                "stop"
-                                            };
-                                            let chunk = make_openai_terminal_chunk(
-                                                &completion_id,
-                                                &model_name,
-                                                Some(finish),
-                                            );
-                                            let _ = tx.send(Ok(chunk)).await;
-                                            sent_terminal = true;
-                                            break;
-                                        }
-                                        _ => {}
                                     }
-                                }
-                                ModelProtocol::ChatCompletions => {
-                                    // Forward standard OpenAI chat chunks directly
-                                    let chunk = format!("data: {}\n\n", event.data);
-                                    if tx.send(Ok(chunk)).await.is_err() {
+                                    for tc in delta.tool_calls {
+                                        has_tool_calls = true;
+                                        let chunk = make_openai_tool_chunk(
+                                            &completion_id,
+                                            &model_name,
+                                            tc.index,
+                                            tc.id.as_deref(),
+                                            tc.name.as_deref(),
+                                            tc.arguments_delta.as_deref(),
+                                        );
+                                        if tx.send(Ok(chunk)).await.is_err() {
+                                            break;
+                                        }
+                                    }
+                                    if let Some(finish) = delta.finish_reason {
+                                        let real_finish = if has_tool_calls && finish == "stop" {
+                                            "tool_calls"
+                                        } else {
+                                            finish.as_str()
+                                        };
+                                        let chunk = make_openai_terminal_chunk(&completion_id, &model_name, Some(real_finish));
+                                        let _ = tx.send(Ok(chunk)).await;
+                                        sent_terminal = true;
                                         break;
                                     }
                                 }
-                                ModelProtocol::SystemOne => {}
+                            } else {
+                                // Forward standard OpenAI chat chunks directly
+                                let chunk = format!("data: {}\n\n", event.data);
+                                if tx.send(Ok(chunk)).await.is_err() {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -309,15 +231,10 @@ pub async fn chat_completions(
                 }
             }
 
-            if !sent_terminal && !had_error {
-                match protocol {
-                    ModelProtocol::Responses => {
-                        let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
-                        let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
-                        let _ = tx.send(Ok(chunk)).await;
-                    }
-                    ModelProtocol::ChatCompletions | ModelProtocol::SystemOne => {}
-                }
+            if !sent_terminal && !had_error && adapter.protocol() == ModelProtocol::Responses {
+                let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
+                let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
+                let _ = tx.send(Ok(chunk)).await;
             }
         });
 
@@ -332,11 +249,8 @@ pub async fn chat_completions(
     } else {
         // NON-STREAMING: Aggregate upstream SSE stream into complete JSON response
         let mut event_stream = response.bytes_stream().eventsource();
-        let mut full_text = String::new();
-        let mut full_reasoning = String::new();
-        let mut collected_tool_calls: std::collections::BTreeMap<usize, (String, String, String, String)> =
-            std::collections::BTreeMap::new();
-        let mut reported_finish_reason: Option<String> = None;
+        let adapter = state.adapters.get_adapter(&model_meta);
+        let mut acc = crate::models::NonStreamingAccumulator::default();
 
         while let Some(event_res) = event_stream.next().await {
             if let Ok(event) = event_res {
@@ -344,126 +258,23 @@ pub async fn chat_completions(
                     continue;
                 }
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&event.data) {
-                    match model_meta.protocol {
-                        ModelProtocol::Responses => {
-                            let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
-                            match event_type {
-                                "response.output_text.delta" => {
-                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                        full_text.push_str(delta);
-                                    }
-                                }
-                                "response.output_item.added" => {
-                                    if let Some(item) = v.get("item")
-                                        && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                                            let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                            let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                                            let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                                            let args = item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
-                                            let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
-                                            if !call_id.is_empty() { entry.0 = call_id; }
-                                            if !name.is_empty() { entry.2 = name; }
-                                            if !args.is_empty() { entry.3.push_str(&args); }
-                                        }
-                                }
-                                "response.function_call_arguments.delta" => {
-                                    let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                        let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
-                                        entry.3.push_str(delta);
-                                    }
-                                }
-                                "response.completed" => {
-                                    if let Some(resp_obj) = v.get("response")
-                                        && let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
-                                            for (idx, out_item) in outputs.iter().enumerate() {
-                                                if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                                                    let call_id = out_item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                                                    let name = out_item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                                                    let args = out_item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
-                                                    let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
-                                                    if !call_id.is_empty() { entry.0 = call_id; }
-                                                    if !name.is_empty() { entry.2 = name; }
-                                                    if entry.3.is_empty() && !args.is_empty() { entry.3 = args; }
-                                                }
-                                            }
-                                        }
-                                }
-                                "response.incomplete" => {
-                                    let reason = v.get("response")
-                                        .and_then(|r| r.get("incomplete_details"))
-                                        .and_then(|d| d.get("reason"))
-                                        .and_then(|r| r.as_str());
-                                    let finish = if reason == Some("max_output_tokens") {
-                                        "length"
-                                    } else {
-                                        "stop"
-                                    };
-                                    reported_finish_reason = Some(finish.to_string());
-                                }
-                                _ => {}
-                            }
-                        }
-                        ModelProtocol::ChatCompletions => {
-                            if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
-                                for choice in choices {
-                                    if let Some(fr) = choice.get("finish_reason").and_then(|f| f.as_str()) {
-                                        reported_finish_reason = Some(fr.to_string());
-                                    }
-                                    if let Some(delta_obj) = choice.get("delta") {
-                                        if let Some(content) =
-                                            delta_obj.get("content").and_then(|c| c.as_str())
-                                        {
-                                            full_text.push_str(content);
-                                        }
-                                        if let Some(reasoning) = delta_obj
-                                            .get("reasoning_content")
-                                            .or_else(|| delta_obj.get("reasoning"))
-                                            .and_then(|r| r.as_str())
-                                        {
-                                            full_reasoning.push_str(reasoning);
-                                        }
-                                        if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
-                                            for tc in tool_calls {
-                                                let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                                let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
-                                                if let Some(id) = tc.get("id").and_then(|i| i.as_str()) {
-                                                    entry.0 = id.to_string();
-                                                }
-                                                if let Some(c_type) = tc.get("type").and_then(|t| t.as_str()) {
-                                                    entry.1 = c_type.to_string();
-                                                }
-                                                if let Some(func) = tc.get("function") {
-                                                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
-                                                        entry.2 = name.to_string();
-                                                    }
-                                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                                        entry.3.push_str(args);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        ModelProtocol::SystemOne => {}
-                    }
+                    let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                    adapter.accumulate_non_streaming(event_type, &v, &mut acc);
                 }
             }
         }
 
-        let reasoning_opt = if full_reasoning.is_empty() {
+        let reasoning_opt = if acc.reasoning.is_empty() {
             None
         } else {
-            Some(full_reasoning.as_str())
+            Some(acc.reasoning.as_str())
         };
 
-        let tool_calls_vec = if collected_tool_calls.is_empty() {
+        let tool_calls_vec = if acc.tool_calls.is_empty() {
             None
         } else {
             Some(
-                collected_tool_calls
+                acc.tool_calls
                     .into_iter()
                     .map(|(_idx, (id, c_type, name, arguments))| {
                         json!({
@@ -482,10 +293,10 @@ pub async fn chat_completions(
         let completion_json = make_openai_completion(
             &completion_id,
             &model_name,
-            &full_text,
+            &acc.text,
             reasoning_opt,
             tool_calls_vec,
-            reported_finish_reason.as_deref(),
+            acc.reported_finish_reason.as_deref(),
         );
 
         Response::builder()

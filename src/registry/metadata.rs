@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelProtocol {
     /// OpenAI Responses API (e.g. muse-* models -> /zen/v1/responses)
     Responses,
     /// OpenAI Chat Completions API (e.g. mimo-*, nemotron-*, etc. -> /zen/v1/chat/completions)
+    #[default]
     ChatCompletions,
     /// TypeSafe AI System One structured evaluation API (e.g. jev-* models -> /zen/v1/systemone)
     SystemOne,
@@ -110,7 +111,7 @@ impl ModelProtocol {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ReasoningType {
     /// Supports effort levels, e.g. ["minimal", "low", "medium", "high", "xhigh"]
@@ -120,10 +121,11 @@ pub enum ReasoningType {
     /// Interleaved reasoning output (e.g. returns delta.reasoning / delta.reasoning_content)
     Interleaved,
     /// No reasoning support
+    #[default]
     None,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ModelMetadata {
     pub id: String,
     pub name: String,

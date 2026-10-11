@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod config;
 pub mod middleware;
+pub mod models;
 pub mod registry;
 pub mod routes;
 pub mod session;
@@ -57,12 +58,7 @@ pub async fn run_server(config: AppConfig) -> Result<(), Box<dyn std::error::Err
     let sync_duration = Duration::from_secs(config.sync_interval_mins.max(1) * 60);
     Arc::new(registry.clone()).start_background_sync(sync_duration);
 
-    let state = AppState {
-        client,
-        registry,
-        upstream,
-        session_manager,
-    };
+    let state = AppState::new(client, registry, upstream, session_manager);
 
     let router = create_router_with_cors(state, config.api_key.clone(), &config.cors);
 

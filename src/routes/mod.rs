@@ -19,6 +19,24 @@ pub struct AppState {
     pub registry: ModelRegistry,
     pub upstream: UpstreamClient,
     pub session_manager: SessionManager,
+    pub adapters: crate::models::AdapterRegistry,
+}
+
+impl AppState {
+    pub fn new(
+        client: reqwest::Client,
+        registry: ModelRegistry,
+        upstream: UpstreamClient,
+        session_manager: SessionManager,
+    ) -> Self {
+        Self {
+            client,
+            registry,
+            upstream,
+            session_manager,
+            adapters: crate::models::AdapterRegistry::default(),
+        }
+    }
 }
 
 pub fn create_router(state: AppState, api_key: Option<String>) -> Router {

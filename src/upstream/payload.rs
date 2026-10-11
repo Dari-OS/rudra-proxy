@@ -1,5 +1,4 @@
-use crate::registry::metadata::{ModelMetadata, ModelProtocol};
-use crate::upstream::effort::apply_reasoning;
+use crate::registry::metadata::ModelMetadata;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -178,175 +177,15 @@ pub fn normalize_tool_for_chat(t: &Value) -> (Value, String) {
 }
 
 /// Builds the OpenCode Zen request payload appropriate for the model's protocol,
-/// injecting mandatory dummy tools and proper reasoning configurations.
+/// injecting mandatory dummy tools and proper reasoning configurations via the
+/// modular adapter system.
 pub fn build_opencode_payload(
     req: &OpenAiChatRequest,
     model: &ModelMetadata,
     override_effort: Option<&str>,
 ) -> Value {
-    let client_effort = req.reasoning_effort.as_deref();
-
-    match model.protocol {
-        ModelProtocol::Responses => {
-            // Mandatory dummy tools for Responses API
-            let dummy_bash = json!({
-                "type": "function",
-                "name": "bash",
-                "description": "bash",
-                "parameters": { "type": "object", "properties": {} }
-            });
-            let dummy_read = json!({
-                "type": "function",
-                "name": "read",
-                "description": "read",
-                "parameters": { "type": "object", "properties": {} }
-            });
-
-            let mut tools = Vec::new();
-            let mut has_bash = false;
-            let mut has_read = false;
-
-            if let Some(ref client_tools) = req.tools {
-                for t in client_tools {
-                    let (normalized, name) = normalize_tool_for_responses(t);
-                    if name == "bash" {
-                        has_bash = true;
-                    }
-                    if name == "read" {
-                        has_read = true;
-                    }
-                    tools.push(normalized);
-                }
-            }
-
-            if !has_bash {
-                tools.push(dummy_bash);
-            }
-            if !has_read {
-                tools.push(dummy_read);
-            }
-
-            let converted_input = convert_messages_to_responses_input(&req.messages);
-            let mut payload = json!({
-                "model": model.id,
-                "input": converted_input,
-                "stream": true, // Zen gateway strictly requires stream: true
-                "tools": tools,
-            });
-
-            if let Some(temp) = req.temperature {
-                payload["temperature"] = json!(temp);
-            }
-            if let Some(top_p) = req.top_p {
-                payload["top_p"] = json!(top_p);
-            }
-            // OpenAI Responses API protocol specifies max_output_tokens, and upstream requires >= 16
-            if let Some(max) = req.max_tokens_limit() {
-                let clamped_max = max.max(16);
-                payload["max_output_tokens"] = json!(clamped_max);
-            }
-            if let Some(ref choice) = req.tool_choice {
-                payload["tool_choice"] = choice.clone();
-            }
-            if let Some(ref user) = req.user {
-                payload["user"] = json!(user);
-            }
-
-            apply_reasoning(&mut payload, model, client_effort, override_effort);
-            payload
-        }
-        ModelProtocol::ChatCompletions => {
-            // Mandatory dummy tools for Chat Completions API
-            let dummy_bash = json!({
-                "type": "function",
-                "function": {
-                    "name": "bash",
-                    "description": "bash",
-                    "parameters": { "type": "object", "properties": {} }
-                }
-            });
-            let dummy_read = json!({
-                "type": "function",
-                "function": {
-                    "name": "read",
-                    "description": "read",
-                    "parameters": { "type": "object", "properties": {} }
-                }
-            });
-
-            let mut tools = Vec::new();
-            let mut has_bash = false;
-            let mut has_read = false;
-
-            if let Some(ref client_tools) = req.tools {
-                for t in client_tools {
-                    let (normalized, name) = normalize_tool_for_chat(t);
-                    if name == "bash" {
-                        has_bash = true;
-                    }
-                    if name == "read" {
-                        has_read = true;
-                    }
-                    tools.push(normalized);
-                }
-            }
-
-            if !has_bash {
-                tools.push(dummy_bash);
-            }
-            if !has_read {
-                tools.push(dummy_read);
-            }
-
-            let mut payload = json!({
-                "model": model.id,
-                "messages": req.messages,
-                "stream": true, // Zen gateway strictly requires stream: true
-                "tools": tools,
-            });
-
-            if let Some(temp) = req.temperature {
-                payload["temperature"] = json!(temp);
-            }
-            if let Some(top_p) = req.top_p {
-                payload["top_p"] = json!(top_p);
-            }
-            if let Some(max) = req.max_tokens_limit() {
-                payload["max_tokens"] = json!(max);
-            }
-            if let Some(ref stop) = req.stop {
-                payload["stop"] = stop.clone();
-            }
-            if let Some(presence) = req.presence_penalty {
-                payload["presence_penalty"] = json!(presence);
-            }
-            if let Some(frequency) = req.frequency_penalty {
-                payload["frequency_penalty"] = json!(frequency);
-            }
-            if let Some(seed) = req.seed {
-                payload["seed"] = json!(seed);
-            }
-            if let Some(ref format) = req.response_format {
-                payload["response_format"] = format.clone();
-            }
-            if let Some(ref choice) = req.tool_choice {
-                payload["tool_choice"] = choice.clone();
-            }
-            if let Some(ref user) = req.user {
-                payload["user"] = json!(user);
-            }
-
-            apply_reasoning(&mut payload, model, client_effort, override_effort);
-            payload
-        }
-        ModelProtocol::SystemOne => {
-            json!({
-                "model": model.id,
-                "messages": req.messages,
-                "stream": true,
-            })
-        }
-    }
+    let adapter = crate::models::AdapterRegistry::default().get_adapter(model);
+    adapter.build_payload(req, model, override_effort)
 }
 
 /// Creates a standard OpenAI `chat.completion.chunk` SSE event string.

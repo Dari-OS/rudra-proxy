@@ -53,16 +53,12 @@ pub async fn generate(
 
     // Bridge for System One models
     if model_meta.protocol == ModelProtocol::SystemOne {
-        let sys_payload = json!({
-            "model": model_meta.id,
-            "state": payload.prompt,
-            "questions": {
-                "decision": {
-                    "type": "noul",
-                    "instructions": "Evaluate the state against the query"
-                }
-            }
-        });
+        let sys_adapter = crate::models::systemone::SystemOneAdapter;
+        let sys_payload = sys_adapter.build_chat_bridge_payload(
+            &model_meta.id,
+            &[json!({ "role": "user", "content": payload.prompt })],
+            None,
+        );
 
         let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
             Ok(res) => res,
@@ -76,9 +72,9 @@ pub async fn generate(
             return (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": err_text}))).into_response();
         }
 
-        let sys_result: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap_or_else(|_| json!({}));
-        let answer_obj = sys_result.get("answers").unwrap_or(&sys_result);
-        let formatted_text = serde_json::to_string_pretty(answer_obj).unwrap_or_default();
+        let formatted_text = sys_adapter
+            .format_evaluation_response(&body_bytes)
+            .unwrap_or_default();
 
         let resp_json = json!({
             "model": payload.model,
@@ -153,7 +149,7 @@ pub async fn generate(
         // NDJSON Streaming mode
         let (tx, rx) = mpsc::channel::<Result<String, std::convert::Infallible>>(128);
         let mut event_stream = response.bytes_stream().eventsource();
-        let protocol = model_meta.protocol;
+        let adapter = state.adapters.get_adapter(&model_meta);
 
         tokio::spawn(async move {
             let mut sent_done = false;
@@ -183,26 +179,11 @@ pub async fn generate(
                                 error!(error = %event.data, "Upstream stream returned error chunk in Ollama generate");
                                 had_error = true;
                             }
-                            let delta_text = match protocol {
-                                ModelProtocol::Responses => {
-                                    if v.get("type").and_then(|t| t.as_str())
-                                        == Some("response.output_text.delta")
-                                    {
-                                        v.get("delta").and_then(|d| d.as_str()).unwrap_or("")
-                                    } else {
-                                        ""
-                                    }
-                                }
-                                ModelProtocol::ChatCompletions => v
-                                    .get("choices")
-                                    .and_then(|c| c.as_array())
-                                    .and_then(|arr| arr.first())
-                                    .and_then(|first| first.get("delta"))
-                                    .and_then(|d| d.get("content"))
-                                    .and_then(|c| c.as_str())
-                                    .unwrap_or(""),
-                                ModelProtocol::SystemOne => "",
-                            };
+                            let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                            let delta_text = adapter
+                                .parse_stream_event(event_type, &v)
+                                .and_then(|d| d.content)
+                                .unwrap_or_default();
 
                             if !delta_text.is_empty() {
                                 let chunk = json!({
@@ -248,7 +229,8 @@ pub async fn generate(
     } else {
         // Non-streaming mode
         let mut event_stream = response.bytes_stream().eventsource();
-        let mut full_text = String::new();
+        let adapter = state.adapters.get_adapter(&model_meta);
+        let mut acc = crate::models::NonStreamingAccumulator::default();
 
         while let Some(event_res) = event_stream.next().await {
             if let Ok(event) = event_res {
@@ -256,27 +238,8 @@ pub async fn generate(
                     continue;
                 }
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&event.data) {
-                    match model_meta.protocol {
-                        ModelProtocol::Responses => {
-                            if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                full_text.push_str(delta);
-                            }
-                        }
-                        ModelProtocol::ChatCompletions => {
-                            if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
-                                for choice in choices {
-                                    if let Some(content) = choice
-                                        .get("delta")
-                                        .and_then(|d| d.get("content"))
-                                        .and_then(|c| c.as_str())
-                                    {
-                                        full_text.push_str(content);
-                                    }
-                                }
-                            }
-                        }
-                        ModelProtocol::SystemOne => {}
-                    }
+                    let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                    adapter.accumulate_non_streaming(event_type, &v, &mut acc);
                 }
             }
         }
@@ -284,7 +247,7 @@ pub async fn generate(
         let resp_json = json!({
             "model": model_tag,
             "created_at": Utc::now().to_rfc3339(),
-            "response": full_text,
+            "response": acc.text,
             "done": true,
             "total_duration": 1200000000u64,
         });

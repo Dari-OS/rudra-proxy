@@ -64,26 +64,8 @@ pub async fn chat(
 
     // Bridge for System One models
     if model_meta.protocol == ModelProtocol::SystemOne {
-        let mut user_prompt = String::new();
-        for msg in &payload.messages {
-            if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
-                if !user_prompt.is_empty() {
-                    user_prompt.push_str("\n\n");
-                }
-                user_prompt.push_str(content);
-            }
-        }
-
-        let sys_payload = json!({
-            "model": model_meta.id,
-            "state": user_prompt,
-            "questions": {
-                "decision": {
-                    "type": "noul",
-                    "instructions": "Evaluate the state against the query"
-                }
-            }
-        });
+        let sys_adapter = crate::models::systemone::SystemOneAdapter;
+        let sys_payload = sys_adapter.build_chat_bridge_payload(&model_meta.id, &payload.messages, None);
 
         let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
             Ok(res) => res,
@@ -97,9 +79,9 @@ pub async fn chat(
             return (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": err_text}))).into_response();
         }
 
-        let sys_result: Value = serde_json::from_slice(&body_bytes).unwrap_or_else(|_| json!({}));
-        let answer_obj = sys_result.get("answers").unwrap_or(&sys_result);
-        let formatted_text = serde_json::to_string_pretty(answer_obj).unwrap_or_default();
+        let formatted_text = sys_adapter
+            .format_evaluation_response(&body_bytes)
+            .unwrap_or_default();
 
         let resp_json = json!({
             "model": payload.model,
@@ -169,7 +151,7 @@ pub async fn chat(
         // NDJSON Streaming mode
         let (tx, rx) = mpsc::channel::<Result<String, std::convert::Infallible>>(128);
         let mut event_stream = response.bytes_stream().eventsource();
-        let protocol = model_meta.protocol;
+        let adapter = state.adapters.get_adapter(&model_meta);
 
         tokio::spawn(async move {
             let mut sent_done = false;
@@ -201,26 +183,11 @@ pub async fn chat(
                                 error!(error = %event.data, "Upstream stream returned error chunk in Ollama chat");
                                 had_error = true;
                             }
-                            let delta_text = match protocol {
-                                ModelProtocol::Responses => {
-                                    if v.get("type").and_then(|t| t.as_str())
-                                        == Some("response.output_text.delta")
-                                    {
-                                        v.get("delta").and_then(|d| d.as_str()).unwrap_or("")
-                                    } else {
-                                        ""
-                                    }
-                                }
-                                ModelProtocol::ChatCompletions => v
-                                    .get("choices")
-                                    .and_then(|c| c.as_array())
-                                    .and_then(|arr| arr.first())
-                                    .and_then(|first| first.get("delta"))
-                                    .and_then(|d| d.get("content"))
-                                    .and_then(|c| c.as_str())
-                                    .unwrap_or(""),
-                                ModelProtocol::SystemOne => "",
-                            };
+                            let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                            let delta_text = adapter
+                                .parse_stream_event(event_type, &v)
+                                .and_then(|d| d.content)
+                                .unwrap_or_default();
 
                             if !delta_text.is_empty() {
                                 let chunk = json!({
@@ -271,10 +238,8 @@ pub async fn chat(
     } else {
         // Non-streaming mode
         let mut event_stream = response.bytes_stream().eventsource();
-        let mut full_text = String::new();
-        let mut collected_tool_calls: std::collections::BTreeMap<usize, (String, String, String, String)> =
-            std::collections::BTreeMap::new();
-        let mut finish_reason = "stop";
+        let adapter = state.adapters.get_adapter(&model_meta);
+        let mut acc = crate::models::NonStreamingAccumulator::default();
 
         while let Some(event_res) = event_stream.next().await {
             if let Ok(event) = event_res {
@@ -282,108 +247,20 @@ pub async fn chat(
                     continue;
                 }
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&event.data) {
-                    match model_meta.protocol {
-                        ModelProtocol::Responses => {
-                            let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
-                            match event_type {
-                                "response.output_text.delta" => {
-                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                        full_text.push_str(delta);
-                                    }
-                                }
-                                "response.output_item.added" => {
-                                    if let Some(item) = v.get("item")
-                                        && item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                                            finish_reason = "tool_calls";
-                                            let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                            let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                                            let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                                            let args = item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
-                                            let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
-                                            if !call_id.is_empty() { entry.0 = call_id; }
-                                            if !name.is_empty() { entry.2 = name; }
-                                            if !args.is_empty() { entry.3.push_str(&args); }
-                                        }
-                                }
-                                "response.function_call_arguments.delta" => {
-                                    finish_reason = "tool_calls";
-                                    let idx = v.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                    if let Some(delta) = v.get("delta").and_then(|d| d.as_str()) {
-                                        let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
-                                        entry.3.push_str(delta);
-                                    }
-                                }
-                                "response.completed" => {
-                                    if let Some(resp_obj) = v.get("response")
-                                        && let Some(outputs) = resp_obj.get("output").and_then(|o| o.as_array()) {
-                                            for (idx, out_item) in outputs.iter().enumerate() {
-                                                if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                                                    finish_reason = "tool_calls";
-                                                    let call_id = out_item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                                                    let name = out_item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                                                    let args = out_item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
-                                                    let entry = collected_tool_calls.entry(idx).or_insert((call_id.clone(), "function".to_string(), name.clone(), String::new()));
-                                                    if !call_id.is_empty() { entry.0 = call_id; }
-                                                    if !name.is_empty() { entry.2 = name; }
-                                                    if entry.3.is_empty() && !args.is_empty() { entry.3 = args; }
-                                                }
-                                            }
-                                        }
-                                }
-                                _ => {}
-                            }
-                        }
-                        ModelProtocol::ChatCompletions => {
-                            if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
-                                for choice in choices {
-                                    if let Some(fr) = choice.get("finish_reason").and_then(|f| f.as_str())
-                                        && fr == "tool_calls" {
-                                            finish_reason = "tool_calls";
-                                        }
-                                    if let Some(delta_obj) = choice.get("delta") {
-                                        if let Some(content) =
-                                            delta_obj.get("content").and_then(|c| c.as_str())
-                                        {
-                                            full_text.push_str(content);
-                                        }
-                                        if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
-                                            finish_reason = "tool_calls";
-                                            for tc in tool_calls {
-                                                let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                                                let entry = collected_tool_calls.entry(idx).or_insert((String::new(), "function".to_string(), String::new(), String::new()));
-                                                if let Some(id) = tc.get("id").and_then(|i| i.as_str()) {
-                                                    entry.0 = id.to_string();
-                                                }
-                                                if let Some(c_type) = tc.get("type").and_then(|t| t.as_str()) {
-                                                    entry.1 = c_type.to_string();
-                                                }
-                                                if let Some(func) = tc.get("function") {
-                                                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
-                                                        entry.2 = name.to_string();
-                                                    }
-                                                    if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                                        entry.3.push_str(args);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        ModelProtocol::SystemOne => {}
-                    }
+                    let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                    adapter.accumulate_non_streaming(event_type, &v, &mut acc);
                 }
             }
         }
 
         let mut msg_obj = json!({
             "role": "assistant",
-            "content": full_text
+            "content": acc.text
         });
 
-        if !collected_tool_calls.is_empty() {
-            let ollama_tool_calls: Vec<Value> = collected_tool_calls
+        if !acc.tool_calls.is_empty() {
+            let ollama_tool_calls: Vec<Value> = acc
+                .tool_calls
                 .into_values()
                 .map(|(_id, _type, name, args)| {
                     let args_val = serde_json::from_str::<Value>(&args)
@@ -399,6 +276,7 @@ pub async fn chat(
             msg_obj["tool_calls"] = json!(ollama_tool_calls);
         }
 
+        let finish_reason = acc.reported_finish_reason.as_deref().unwrap_or("stop");
         let resp_json = json!({
             "model": model_tag,
             "created_at": Utc::now().to_rfc3339(),
