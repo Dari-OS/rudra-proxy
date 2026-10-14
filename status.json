@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-13T04:44:22.493587812+00:00",
+  "updated_at": "2026-10-14T02:53:06.440587252+00:00",
   "status": "operational",
   "gateway": "https://opencode.ai/zen/v1/models",
-  "models_count": 10,
+  "models_count": 11,
   "models": [
     {
       "id": "big-pickle",
@@ -17,6 +17,18 @@
       "tokens_per_sec": null
     },
     {
+      "id": "cat-jam-free",
+      "name": "Cat Jam Free",
+      "provider": "opencode",
+      "protocol": "chat_completions",
+      "reasoning": "effort (5)",
+      "context_limit": 262144,
+      "output_limit": 131072,
+      "status": "error (403 Forbidden)",
+      "latency_ms": null,
+      "tokens_per_sec": null
+    },
+    {
       "id": "jev-1.13-free",
       "name": "jev-1.13-free",
       "provider": "jev",
@@ -25,8 +37,8 @@
       "context_limit": 131072,
       "output_limit": 16384,
       "status": "online",
-      "latency_ms": 406,
-      "tokens_per_sec": 49.3
+      "latency_ms": 265,
+      "tokens_per_sec": 75.5
     },
     {
       "id": "ling-3.1-flash-free",
