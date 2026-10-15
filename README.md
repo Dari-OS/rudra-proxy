@@ -63,8 +63,7 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (403 Forbidden) | - | - |
 | `cat-jam-free` | opencode | `chat_completions` | effort (5) | 262k | error (403 Forbidden) | - | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 222 ms | 90.1 tok/s |
-| `ling-3.1-flash-free` | ling | `chat_completions` | toggle | 262k | error (403 Forbidden) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 232 ms | 86.2 tok/s |
 | `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | error (403 Forbidden) | - | - |
 | `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (403 Forbidden) | - | - |
 | `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | error (403 Forbidden) | - | - |
