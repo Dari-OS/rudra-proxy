@@ -45,7 +45,14 @@ impl ModelAdapter for MuseAdapter {
                 "type": "function",
                 "name": "bash",
                 "description": "bash",
-                "parameters": { "type": "object", "properties": {} }
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "command": { "type": "string" }
+                    },
+                    "required": ["command"]
+                },
+                "strict": false
             }));
         }
         if !has_read {
@@ -53,7 +60,14 @@ impl ModelAdapter for MuseAdapter {
                 "type": "function",
                 "name": "read",
                 "description": "read",
-                "parameters": { "type": "object", "properties": {} }
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "filePath": { "type": "string" }
+                    },
+                    "required": ["filePath"]
+                },
+                "strict": false
             }));
         }
     }
@@ -87,7 +101,8 @@ impl ModelAdapter for MuseAdapter {
         let mut payload = json!({
             "model": model.id,
             "input": converted_input,
-            "stream": true, // Zen gateway strictly requires stream: true
+            "stream": true,
+            "store": false,
             "tools": tools,
         });
 

@@ -44,7 +44,14 @@ impl ModelAdapter for MimoAdapter {
                 "function": {
                     "name": "bash",
                     "description": "bash",
-                    "parameters": { "type": "object", "properties": {} }
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "command": { "type": "string" }
+                        },
+                        "required": ["command"]
+                    },
+                    "strict": false
                 }
             }));
         }
@@ -54,7 +61,14 @@ impl ModelAdapter for MimoAdapter {
                 "function": {
                     "name": "read",
                     "description": "read",
-                    "parameters": { "type": "object", "properties": {} }
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "filePath": { "type": "string" }
+                        },
+                        "required": ["filePath"]
+                    },
+                    "strict": false
                 }
             }));
         }

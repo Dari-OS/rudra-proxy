@@ -272,11 +272,17 @@ mod tests {
         };
         let payload = adapter.build_payload(&req, &muse_meta, None);
         assert_eq!(payload["max_output_tokens"], 16);
+        assert_eq!(payload["store"], false);
 
         // Dummy tools injected
         let tools = payload["tools"].as_array().expect("tools array");
-        assert!(tools.iter().any(|t| t["name"] == "bash"));
-        assert!(tools.iter().any(|t| t["name"] == "read"));
+        let bash_tool = tools.iter().find(|t| t["name"] == "bash").expect("bash tool");
+        assert_eq!(bash_tool["strict"], false);
+        assert!(bash_tool["parameters"]["properties"]["command"].is_object());
+
+        let read_tool = tools.iter().find(|t| t["name"] == "read").expect("read tool");
+        assert_eq!(read_tool["strict"], false);
+        assert!(read_tool["parameters"]["properties"]["filePath"].is_object());
 
         // Stream event parsing
         let delta = adapter
@@ -317,6 +323,12 @@ mod tests {
         };
         let payload = adapter.build_payload(&req, &mimo_meta, None);
         assert!(payload.get("reasoning_effort").is_none());
+
+        // Dummy tools injected for Chat Completions
+        let tools = payload["tools"].as_array().expect("tools array");
+        let bash_tool = tools.iter().find(|t| t["function"]["name"] == "bash").expect("bash tool");
+        assert_eq!(bash_tool["function"]["strict"], false);
+        assert!(bash_tool["function"]["parameters"]["properties"]["command"].is_object());
 
         // Stream parsing of interleaved reasoning
         let event = json!({

@@ -1,35 +1,53 @@
 use crate::registry::metadata::ModelProtocol;
 use crate::registry::sync::DEFAULT_USER_AGENT;
-use crate::session::SessionId;
+use crate::session::{RequestId, SessionId};
 use crate::upstream::proxy_pool::ProxyPool;
 use reqwest::Response;
 use serde_json::Value;
 use tracing::debug;
 
-pub const OPENCODE_RESPONSES_URL: &str = "https://opencode.ai/zen/v1/responses";
-pub const OPENCODE_CHAT_COMPLETIONS_URL: &str = "https://opencode.ai/zen/v1/chat/completions";
-pub const OPENCODE_SYSTEMONE_URL: &str = "https://opencode.ai/zen/v1/systemone";
+pub const OPENCODE_RESPONSES_URL: &str = "https://opencode.ai/inference/v1/responses";
+pub const OPENCODE_CHAT_COMPLETIONS_URL: &str = "https://opencode.ai/inference/v1/chat/completions";
+pub const OPENCODE_SYSTEMONE_URL: &str = "https://opencode.ai/inference/v1/systemone";
+pub const DEFAULT_PROJECT_ID: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
 
 #[derive(Clone)]
 pub struct UpstreamClient {
     proxy_pool: ProxyPool,
     upstream_api_key: String,
+    project_id: String,
 }
 
 impl UpstreamClient {
     pub fn new(proxy_pool: ProxyPool, upstream_api_key: String) -> Self {
+        let project_id = std::env::var("OPENCODE_PROJECT_ID")
+            .unwrap_or_else(|_| DEFAULT_PROJECT_ID.to_string());
         Self {
             proxy_pool,
             upstream_api_key,
+            project_id,
         }
     }
 
-    /// Dispatches the request to OpenCode Zen with mandatory spoofed headers and active proxy routing.
+    /// Dispatches the request to OpenCode with mandatory attestation headers and active proxy routing.
     pub async fn dispatch(
         &self,
         protocol: ModelProtocol,
         session_id: &SessionId,
         payload: &Value,
+    ) -> Result<Response, reqwest::Error> {
+        self.dispatch_with_headers(protocol, session_id, payload, None, None)
+            .await
+    }
+
+    /// Dispatches the request to OpenCode with explicit request/project ID propagation.
+    pub async fn dispatch_with_headers(
+        &self,
+        protocol: ModelProtocol,
+        session_id: &SessionId,
+        payload: &Value,
+        request_id: Option<&str>,
+        project_id: Option<&str>,
     ) -> Result<Response, reqwest::Error> {
         let target_url = match protocol {
             ModelProtocol::Responses => OPENCODE_RESPONSES_URL,
@@ -43,12 +61,20 @@ impl UpstreamClient {
         }
 
         let auth_header = format!("Bearer {}", self.upstream_api_key);
+        let req_id = match request_id {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => RequestId::generate().to_string(),
+        };
+        let proj_id = project_id.filter(|p| !p.is_empty()).unwrap_or(&self.project_id);
 
         client
             .post(target_url)
             .header("Content-Type", "application/json")
             .header("User-Agent", DEFAULT_USER_AGENT)
+            .header("x-opencode-client", "cli")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-request", &req_id)
+            .header("x-opencode-project", proj_id)
             .header("Authorization", &auth_header)
             .json(payload)
             .send()
@@ -61,18 +87,38 @@ impl UpstreamClient {
         session_id: &SessionId,
         payload: &Value,
     ) -> Result<Response, reqwest::Error> {
+        self.dispatch_systemone_with_headers(session_id, payload, None, None)
+            .await
+    }
+
+    /// Dispatches a TypeSafe AI / System One evaluation request with explicit request/project ID propagation.
+    pub async fn dispatch_systemone_with_headers(
+        &self,
+        session_id: &SessionId,
+        payload: &Value,
+        request_id: Option<&str>,
+        project_id: Option<&str>,
+    ) -> Result<Response, reqwest::Error> {
         let (client, proxy_url) = self.proxy_pool.get_client();
         if let Some(ref p) = proxy_url {
             debug!(proxy = %p, "Routing upstream System One request through proxy");
         }
 
         let auth_header = format!("Bearer {}", self.upstream_api_key);
+        let req_id = match request_id {
+            Some(id) if !id.is_empty() => id.to_string(),
+            _ => RequestId::generate().to_string(),
+        };
+        let proj_id = project_id.filter(|p| !p.is_empty()).unwrap_or(&self.project_id);
 
         client
             .post(OPENCODE_SYSTEMONE_URL)
             .header("Content-Type", "application/json")
             .header("User-Agent", DEFAULT_USER_AGENT)
+            .header("x-opencode-client", "cli")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-request", &req_id)
+            .header("x-opencode-project", proj_id)
             .header("Authorization", &auth_header)
             .json(payload)
             .send()
@@ -82,4 +128,9 @@ impl UpstreamClient {
     pub fn proxy_pool(&self) -> &ProxyPool {
         &self.proxy_pool
     }
+
+    pub fn project_id(&self) -> &str {
+        &self.project_id
+    }
 }
+
