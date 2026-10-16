@@ -32,9 +32,13 @@ pub async fn chat_completions(
     Json(payload): Json<OpenAiChatRequest>,
 ) -> Response {
     // 1. Resolve session ID (using SessionManager with configurable rotation)
+    let raw_session = headers
+        .get("x-opencode-session-id")
+        .or_else(|| headers.get("x-opencode-session"))
+        .and_then(|v| v.to_str().ok());
     let session_id = state
         .session_manager
-        .get_or_rotate_session(headers.get("x-opencode-session").and_then(|v| v.to_str().ok()))
+        .get_or_rotate_session(raw_session)
         .await;
 
     // 2. Resolve target model metadata
@@ -92,6 +96,7 @@ pub async fn chat_completions(
             Response::builder()
                 .header(header::CONTENT_TYPE, "text/event-stream")
                 .header("x-opencode-session", session_id.as_str())
+                .header("x-opencode-session-id", session_id.as_str())
                 .body(Body::from(format!("{chunk1}{chunk2}")))
                 .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Stream error").into_response())
         } else {
@@ -99,6 +104,7 @@ pub async fn chat_completions(
             Response::builder()
                 .header(header::CONTENT_TYPE, "application/json")
                 .header("x-opencode-session", session_id.as_str())
+                .header("x-opencode-session-id", session_id.as_str())
                 .body(Body::from(completion_json.to_string()))
                 .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response())
         };
@@ -244,6 +250,7 @@ pub async fn chat_completions(
             .header(header::CACHE_CONTROL, "no-cache")
             .header(header::CONNECTION, "keep-alive")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-session-id", session_id.as_str())
             .body(Body::from_stream(body_stream))
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Stream error").into_response())
     } else {
@@ -302,6 +309,7 @@ pub async fn chat_completions(
         Response::builder()
             .header(header::CONTENT_TYPE, "application/json")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-session-id", session_id.as_str())
             .body(Body::from(completion_json.to_string()))
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response())
     }

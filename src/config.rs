@@ -553,7 +553,7 @@ pub fn default_aliases() -> HashMap<String, String> {
     );
     map.insert(
         "claude-3-5-sonnet".to_string(),
-        "nemotron-3-ultra-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
     );
     map.insert(
         "llama3".to_string(),
@@ -566,6 +566,32 @@ pub fn default_aliases() -> HashMap<String, String> {
     map.insert(
         "jev".to_string(),
         "jev-1.13-free".to_string(),
+    );
+
+    // Backward-compatible fallbacks for models sunset or deprecated upstream
+    map.insert(
+        "step-5-preview-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
+    );
+    map.insert(
+        "mimo-v2.5-free".to_string(),
+        "mimo-v2.6-flash-free".to_string(),
+    );
+    map.insert(
+        "nemotron-3-ultra-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
+    );
+    map.insert(
+        "ling-3.1-flash-free".to_string(),
+        "glm-5.3-flash-free".to_string(),
+    );
+    map.insert(
+        "ling-3.0-flash-fin-free".to_string(),
+        "glm-5.3-flash-free".to_string(),
+    );
+    map.insert(
+        "exo-free".to_string(),
+        "space-bunny-free".to_string(),
     );
     map
 }

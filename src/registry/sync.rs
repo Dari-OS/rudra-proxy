@@ -7,7 +7,7 @@ use tracing::{info, warn};
 pub const OPENCODE_ZEN_MODELS_URL: &str = "https://opencode.ai/zen/v1/models";
 pub const OPENCODE_CATALOG_URL: &str = "https://models.opencode.ai/api.json";
 pub const DEFAULT_USER_AGENT: &str =
-    "opencode/1.18.33 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.2";
+    "opencode/1.19.2 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.2";
 
 
 #[derive(Deserialize)]
@@ -137,7 +137,10 @@ pub async fn fetch_and_sync_models(
             .map(|c| c.input.unwrap_or(1.0) == 0.0 && c.output.unwrap_or(1.0) == 0.0)
             .unwrap_or(false);
 
-        let is_name_free = id.ends_with("-free") || id.contains("contributor-free");
+        let is_name_free = id.ends_with("-free")
+            || id.contains("contributor-free")
+            || id == "big-pickle"
+            || baseline.get(&id).map(|b| b.is_free).unwrap_or(false);
 
         // If keyless mode, only include free models; otherwise include all accessible models
         if is_keyless && !is_cost_free && !is_name_free {

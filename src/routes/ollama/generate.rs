@@ -35,9 +35,13 @@ pub async fn generate(
     headers: HeaderMap,
     Json(payload): Json<OllamaGenerateRequest>,
 ) -> Response {
+    let raw_session = headers
+        .get("x-opencode-session-id")
+        .or_else(|| headers.get("x-opencode-session"))
+        .and_then(|v| v.to_str().ok());
     let session_id = state
         .session_manager
-        .get_or_rotate_session(headers.get("x-opencode-session").and_then(|v| v.to_str().ok()))
+        .get_or_rotate_session(raw_session)
         .await;
 
     let model_meta = state.registry.resolve_model(&payload.model).await;
@@ -87,6 +91,7 @@ pub async fn generate(
         return Response::builder()
             .header(header::CONTENT_TYPE, "application/json")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-session-id", session_id.as_str())
             .body(Body::from(resp_json.to_string()))
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response());
     }
@@ -224,6 +229,7 @@ pub async fn generate(
             .header(header::CACHE_CONTROL, "no-cache")
             .header(header::CONNECTION, "keep-alive")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-session-id", session_id.as_str())
             .body(Body::from_stream(body_stream))
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Stream error").into_response())
     } else {
@@ -255,6 +261,7 @@ pub async fn generate(
         Response::builder()
             .header(header::CONTENT_TYPE, "application/json")
             .header("x-opencode-session", session_id.as_str())
+            .header("x-opencode-session-id", session_id.as_str())
             .body(Body::from(resp_json.to_string()))
             .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response())
     }

@@ -16,9 +16,10 @@ impl ModelAdapter for MimoAdapter {
     }
 
     fn matches(&self, meta: &ModelMetadata) -> bool {
-        meta.id.contains("mimo")
-            || meta.id.contains("nemotron")
-            || matches!(meta.reasoning, ReasoningType::Interleaved)
+        !matches!(meta.reasoning, ReasoningType::Effort { .. })
+            && (meta.id.contains("mimo")
+                || meta.id.contains("nemotron")
+                || matches!(meta.reasoning, ReasoningType::Interleaved))
     }
 
     fn protocol(&self) -> ModelProtocol {

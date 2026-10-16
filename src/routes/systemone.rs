@@ -22,9 +22,13 @@ pub async fn evaluate_systemone(
     headers: HeaderMap,
     Json(payload): Json<SystemOneRequest>,
 ) -> Response {
+    let raw_session = headers
+        .get("x-opencode-session-id")
+        .or_else(|| headers.get("x-opencode-session"))
+        .and_then(|v| v.to_str().ok());
     let session_id = state
         .session_manager
-        .get_or_rotate_session(headers.get("x-opencode-session").and_then(|v| v.to_str().ok()))
+        .get_or_rotate_session(raw_session)
         .await;
 
     let requested_model = payload
@@ -89,6 +93,7 @@ pub async fn evaluate_systemone(
     Response::builder()
         .header(header::CONTENT_TYPE, "application/json")
         .header("x-opencode-session", session_id.as_str())
+        .header("x-opencode-session-id", session_id.as_str())
         .status(StatusCode::OK)
         .body(axum::body::Body::from(result_json.to_string()))
         .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Response build error").into_response())

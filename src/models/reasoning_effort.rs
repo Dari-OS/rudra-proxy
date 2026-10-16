@@ -20,6 +20,11 @@ impl ModelAdapter for ReasoningEffortAdapter {
         (matches!(meta.reasoning, ReasoningType::Effort { .. })
             || meta.id.contains("bunny")
             || meta.id.contains("step-5")
+            || meta.id.contains("cat-jam")
+            || meta.id.contains("deepseek")
+            || meta.id.contains("glm")
+            || meta.id.contains("alpha")
+            || meta.id.contains("super-vl")
             || meta.id.contains("exo"))
             && meta.protocol == ModelProtocol::ChatCompletions
     }
