@@ -61,19 +61,16 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 9004 ms | 29.4 tok/s |
-| `cat-jam-free` | opencode | `chat_completions` | effort (5) | 1048k | online | 407 ms | 7.3 tok/s |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | online | 997 ms | 56.0 tok/s |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 30002 ms | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 254 ms | 78.7 tok/s |
-| `ll-alpha-free` | opencode | `chat_completions` | effort (5) | 262k | online | 422 ms | 5.3 tok/s |
-| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | offline | - | - |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 2208 ms | 10.8 tok/s |
-| `muse-spark-1.2-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 2157 ms | 63.8 tok/s |
-| `muse-spark-1.3-contributor-free` | muse-free | `responses` | effort (5) | 1048k | online | 3439 ms | 75.0 tok/s |
-| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 8082 ms | 60.0 tok/s |
-| `nemotron-3.5-super-vl-free` | nemotron-free | `chat_completions` | effort (6) | 1048k | online | 688 ms | 60.0 tok/s |
-| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 717 ms | 26.3 tok/s |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | online | 433 ms | 6.9 tok/s |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 14922 ms | 30.3 tok/s |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | online | 1743 ms | 150.0 tok/s |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 1331 ms | 14.2 tok/s |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 180 ms | 111.1 tok/s |
+| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 2722 ms | 4.0 tok/s |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 2613 ms | 9.3 tok/s |
+| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 30000 ms | - |
+| `nemotron-3.5-super-vl-free` | nemotron-free | `chat_completions` | effort (6) | 1048k | online | 590 ms | 81.1 tok/s |
+| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 516 ms | 63.8 tok/s |
 <!-- MODEL_TABLE_END -->
 
 ---
