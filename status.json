@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-10-19T02:34:17.976900488+00:00",
-  "status": "degraded",
+  "updated_at": "2026-10-19T08:15:08.681516078+00:00",
+  "status": "operational",
   "gateway": "https://opencode.ai/zen/v1/models",
   "models_count": 10,
   "models": [
@@ -12,9 +12,9 @@
       "reasoning": "effort (5)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 459,
+      "tokens_per_sec": 6.5
     },
     {
       "id": "big-pickle",
@@ -24,9 +24,9 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 3280,
+      "tokens_per_sec": 1.7
     },
     {
       "id": "deepseek-v4.1-flash-free",
@@ -36,9 +36,9 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 2070,
+      "tokens_per_sec": 40.9
     },
     {
       "id": "glm-5.3-flash-free",
@@ -48,9 +48,9 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 667,
+      "tokens_per_sec": 136.4
     },
     {
       "id": "jev-1.13-free",
@@ -60,9 +60,9 @@
       "reasoning": "none",
       "context_limit": 131072,
       "output_limit": 16384,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 254,
+      "tokens_per_sec": 78.7
     },
     {
       "id": "longcat-2.5-preview-free",
@@ -72,9 +72,9 @@
       "reasoning": "toggle",
       "context_limit": 1000000,
       "output_limit": 131072,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 2528,
+      "tokens_per_sec": 3.0
     },
     {
       "id": "mimo-v2.6-flash-free",
@@ -84,9 +84,9 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 5308,
+      "tokens_per_sec": 13.5
     },
     {
       "id": "nemotron-3.5-lightning-free",
@@ -96,9 +96,9 @@
       "reasoning": "none",
       "context_limit": 262144,
       "output_limit": 262144,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 405,
+      "tokens_per_sec": 72.2
     },
     {
       "id": "nemotron-3.5-super-vl-free",
@@ -108,9 +108,9 @@
       "reasoning": "effort (6)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 1181,
+      "tokens_per_sec": 96.8
     },
     {
       "id": "space-bunny-free",
@@ -120,9 +120,9 @@
       "reasoning": "effort (5)",
       "context_limit": 1048576,
       "output_limit": 524288,
-      "status": "error (403 Forbidden)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 1991,
+      "tokens_per_sec": 66.7
     }
   ]
 }
