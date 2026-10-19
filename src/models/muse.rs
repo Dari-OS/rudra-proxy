@@ -3,8 +3,10 @@ use super::{
 };
 use crate::registry::metadata::{ModelMetadata, ModelProtocol};
 use crate::upstream::effort::resolve_responses_reasoning;
-use crate::upstream::payload::{convert_messages_to_responses_input, normalize_tool_for_responses, OpenAiChatRequest};
-use serde_json::{json, Value};
+use crate::upstream::payload::{
+    OpenAiChatRequest, convert_messages_to_responses_input, normalize_tool_for_responses,
+};
+use serde_json::{Value, json};
 
 /// Model adapter for Muse Spark family models (`muse-*`) operating over
 /// the OpenAI Responses API protocol (`/zen/v1/responses`).
@@ -20,7 +22,10 @@ impl ModelAdapter for MuseAdapter {
         meta.protocol == ModelProtocol::Responses
             || meta.id.starts_with("muse")
             || meta.family.eq_ignore_ascii_case("muse")
-            || meta.description.to_ascii_lowercase().contains("responses api")
+            || meta
+                .description
+                .to_ascii_lowercase()
+                .contains("responses api")
     }
 
     fn protocol(&self) -> ModelProtocol {
@@ -165,9 +170,18 @@ impl ModelAdapter for MuseAdapter {
                 if let Some(item) = data.get("item")
                     && item.get("type").and_then(|t| t.as_str()) == Some("function_call")
                 {
-                    let idx = data.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                    let call_id = item.get("call_id").and_then(|c| c.as_str()).map(|s| s.to_string());
-                    let name = item.get("name").and_then(|n| n.as_str()).map(|s| s.to_string());
+                    let idx = data
+                        .get("output_index")
+                        .and_then(|i| i.as_u64())
+                        .unwrap_or(0) as usize;
+                    let call_id = item
+                        .get("call_id")
+                        .and_then(|c| c.as_str())
+                        .map(|s| s.to_string());
+                    let name = item
+                        .get("name")
+                        .and_then(|n| n.as_str())
+                        .map(|s| s.to_string());
                     delta.tool_calls.push(ExtractedToolCallChunk {
                         index: idx,
                         id: call_id,
@@ -181,7 +195,10 @@ impl ModelAdapter for MuseAdapter {
                 }
             }
             "response.function_call_arguments.delta" => {
-                let idx = data.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                let idx = data
+                    .get("output_index")
+                    .and_then(|i| i.as_u64())
+                    .unwrap_or(0) as usize;
                 let arg_delta = data.get("delta").and_then(|d| d.as_str()).unwrap_or("");
                 delta.tool_calls.push(ExtractedToolCallChunk {
                     index: idx,
@@ -236,10 +253,25 @@ impl ModelAdapter for MuseAdapter {
                 if let Some(item) = data.get("item")
                     && item.get("type").and_then(|t| t.as_str()) == Some("function_call")
                 {
-                    let idx = data.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-                    let call_id = item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                    let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                    let args = item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
+                    let idx = data
+                        .get("output_index")
+                        .and_then(|i| i.as_u64())
+                        .unwrap_or(0) as usize;
+                    let call_id = item
+                        .get("call_id")
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let name = item
+                        .get("name")
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let args = item
+                        .get("arguments")
+                        .and_then(|a| a.as_str())
+                        .unwrap_or("")
+                        .to_string();
                     let entry = acc.tool_calls.entry(idx).or_insert((
                         call_id.clone(),
                         "function".to_string(),
@@ -258,7 +290,10 @@ impl ModelAdapter for MuseAdapter {
                 }
             }
             "response.function_call_arguments.delta" => {
-                let idx = data.get("output_index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                let idx = data
+                    .get("output_index")
+                    .and_then(|i| i.as_u64())
+                    .unwrap_or(0) as usize;
                 if let Some(delta) = data.get("delta").and_then(|d| d.as_str()) {
                     let entry = acc.tool_calls.entry(idx).or_insert((
                         String::new(),
@@ -275,9 +310,21 @@ impl ModelAdapter for MuseAdapter {
                 {
                     for (idx, out_item) in outputs.iter().enumerate() {
                         if out_item.get("type").and_then(|t| t.as_str()) == Some("function_call") {
-                            let call_id = out_item.get("call_id").and_then(|c| c.as_str()).unwrap_or("").to_string();
-                            let name = out_item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                            let args = out_item.get("arguments").and_then(|a| a.as_str()).unwrap_or("").to_string();
+                            let call_id = out_item
+                                .get("call_id")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let name = out_item
+                                .get("name")
+                                .and_then(|n| n.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let args = out_item
+                                .get("arguments")
+                                .and_then(|a| a.as_str())
+                                .unwrap_or("")
+                                .to_string();
                             let entry = acc.tool_calls.entry(idx).or_insert((
                                 call_id.clone(),
                                 "function".to_string(),

@@ -1,16 +1,16 @@
 use axum::body::to_bytes;
 use axum::http::{Request, StatusCode};
 use rudra_proxy::config::{AppConfig, CliArgs, ProxyConfig, ProxyNodeConfig};
-use rudra_proxy::registry::metadata::ModelProtocol;
 use rudra_proxy::registry::ModelRegistry;
-use rudra_proxy::routes::{create_router, AppState};
+use rudra_proxy::registry::metadata::ModelProtocol;
+use rudra_proxy::routes::{AppState, create_router};
 use rudra_proxy::session::SessionManager;
 use rudra_proxy::upstream::payload::{
-    build_opencode_payload, make_openai_completion, make_openai_terminal_chunk,
-    make_openai_tool_chunk, OpenAiChatRequest,
+    OpenAiChatRequest, build_opencode_payload, make_openai_completion, make_openai_terminal_chunk,
+    make_openai_tool_chunk,
 };
 use rudra_proxy::upstream::{ProxyPool, UpstreamClient};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tower::ServiceExt;
 
 fn make_test_cli_args() -> CliArgs {
@@ -24,17 +24,24 @@ async fn test_model_resolution_and_aliases() {
     let registry = ModelRegistry::new(client, &config);
 
     // Baseline free model
-    let muse = registry.resolve_model("muse-spark-1.3-contributor-free").await;
-    assert_eq!(muse.protocol, ModelProtocol::Responses);
+    let beam = registry.resolve_model("beam-free").await;
+    assert_eq!(beam.protocol, ModelProtocol::ChatCompletions);
 
     // Stripping :latest
-    let muse_latest = registry.resolve_model("muse-spark-1.3-contributor-free:latest").await;
-    assert_eq!(muse_latest.id, "muse-spark-1.3-contributor-free");
+    let beam_latest = registry.resolve_model("beam-free:latest").await;
+    assert_eq!(beam_latest.id, "beam-free");
 
-    // Default alias gpt-4o -> muse-spark-1.3-contributor-free
+    // Fallback alias for deprecated muse model -> nemotron-3.5-super-vl-free
+    let muse_fallback = registry
+        .resolve_model("muse-spark-1.3-contributor-free")
+        .await;
+    assert_eq!(muse_fallback.id, "nemotron-3.5-super-vl-free");
+    assert_eq!(muse_fallback.protocol, ModelProtocol::ChatCompletions);
+
+    // Default alias gpt-4o -> nemotron-3.5-super-vl-free
     let gpt4o = registry.resolve_model("gpt-4o").await;
-    assert_eq!(gpt4o.id, "muse-spark-1.3-contributor-free");
-    assert_eq!(gpt4o.protocol, ModelProtocol::Responses);
+    assert_eq!(gpt4o.id, "nemotron-3.5-super-vl-free");
+    assert_eq!(gpt4o.protocol, ModelProtocol::ChatCompletions);
 
     // Chat completion model
     let mimo = registry.resolve_model("mimo-v2.6-flash-free").await;
@@ -43,6 +50,10 @@ async fn test_model_resolution_and_aliases() {
     // SystemOne model
     let jev = registry.resolve_model("jev-1.13-free").await;
     assert_eq!(jev.protocol, ModelProtocol::SystemOne);
+
+    // Dynamic Responses API model detection
+    let muse = registry.resolve_model("muse-preview").await;
+    assert_eq!(muse.protocol, ModelProtocol::Responses);
 }
 
 #[tokio::test]
@@ -52,9 +63,9 @@ async fn test_payload_builder_dummy_tools_and_streaming() {
     let registry = ModelRegistry::new(client, &config);
 
     // 1. Responses API payload
-    let muse_meta = registry.resolve_model("muse-spark-1.3-contributor-free").await;
+    let muse_meta = registry.resolve_model("muse-preview").await;
     let req = OpenAiChatRequest {
-        model: "muse-spark-1.3-contributor-free".to_string(),
+        model: "muse-preview".to_string(),
         messages: vec![json!({"role": "user", "content": "hello"})],
         stream: false, // client requests false
         temperature: Some(0.7),
@@ -108,7 +119,10 @@ async fn test_payload_builder_dummy_tools_and_streaming() {
     assert_eq!(mimo_payload["presence_penalty"], 0.4);
     assert_eq!(mimo_payload["frequency_penalty"], 0.6);
     assert_eq!(mimo_payload["seed"], 12345);
-    assert_eq!(mimo_payload["response_format"], json!({"type": "json_object"}));
+    assert_eq!(
+        mimo_payload["response_format"],
+        json!({"type": "json_object"})
+    );
     // mimo-v2.6-flash-free uses interleaved reasoning, no reasoning_effort parameter should be injected
     assert!(mimo_payload.get("reasoning_effort").is_none());
 }
@@ -312,12 +326,10 @@ async fn test_proxy_pool_rotation() {
             "http://127.0.0.1:8001".to_string(),
             "http://127.0.0.1:8002".to_string(),
         ],
-        list: vec![
-            ProxyNodeConfig {
-                url: "http://127.0.0.1:8000".to_string(),
-                requests: 1,
-            },
-        ],
+        list: vec![ProxyNodeConfig {
+            url: "http://127.0.0.1:8000".to_string(),
+            requests: 1,
+        }],
     };
 
     let pool = ProxyPool::new(&proxy_config, default_client);
@@ -348,7 +360,7 @@ async fn test_reasoning_effort_clamping_and_chat_resolution() {
     let registry = ModelRegistry::new(client, &config);
 
     // 1. Responses model (muse-*) clamps invalid/approximate strings
-    let muse = registry.resolve_model("muse-spark-1.3-contributor-free").await;
+    let muse = registry.resolve_model("muse-preview").await;
     let req_min = OpenAiChatRequest {
         model: muse.id.clone(),
         messages: vec![json!({"role": "user", "content": "test"})],
@@ -456,11 +468,11 @@ async fn test_tool_calls_payload_injection_and_conversion() {
     let config = AppConfig::load(make_test_cli_args());
     let registry = ModelRegistry::new(client, &config);
 
-    let muse_meta = registry.resolve_model("muse-spark-1.3-contributor-free").await;
+    let muse_meta = registry.resolve_model("muse-preview").await;
 
     // Multi-turn conversation with assistant tool_calls and tool result
     let req = OpenAiChatRequest {
-        model: "muse-spark-1.3-contributor-free".to_string(),
+        model: "muse-preview".to_string(),
         messages: vec![
             json!({"role": "user", "content": "What is the weather?"}),
             json!({
@@ -547,7 +559,14 @@ fn test_make_openai_completion_with_tool_calls() {
 
 #[test]
 fn test_make_openai_tool_chunk_format() {
-    let chunk = make_openai_tool_chunk("cmpl-1", "mimo-v2.6-flash-free", 0, Some("call_999"), Some("bash"), Some("ls -la"));
+    let chunk = make_openai_tool_chunk(
+        "cmpl-1",
+        "mimo-v2.6-flash-free",
+        0,
+        Some("call_999"),
+        Some("bash"),
+        Some("ls -la"),
+    );
     assert!(chunk.starts_with("data: "));
     assert!(chunk.contains("call_999"));
     assert!(chunk.contains("bash"));
@@ -597,9 +616,19 @@ async fn test_custom_harness_tools_preservation() {
     let tools = payload["tools"].as_array().expect("tools");
     assert_eq!(tools.len(), 2); // 1 custom bash + 1 injected dummy read
 
-    let bash_tool = tools.iter().find(|t| t["function"]["name"] == "bash").expect("bash tool");
-    assert_eq!(bash_tool["function"]["description"], "Execute arbitrary shell command in workspace");
-    assert!(bash_tool["function"]["parameters"]["properties"].get("command").is_some());
+    let bash_tool = tools
+        .iter()
+        .find(|t| t["function"]["name"] == "bash")
+        .expect("bash tool");
+    assert_eq!(
+        bash_tool["function"]["description"],
+        "Execute arbitrary shell command in workspace"
+    );
+    assert!(
+        bash_tool["function"]["parameters"]["properties"]
+            .get("command")
+            .is_some()
+    );
 
     // 2. Client passes NO tools: proxy automatically injects dummy bash and read
     let req_no_tools = OpenAiChatRequest {
@@ -615,5 +644,3 @@ async fn test_custom_harness_tools_preservation() {
     assert!(auto_tools.iter().any(|t| t["function"]["name"] == "bash"));
     assert!(auto_tools.iter().any(|t| t["function"]["name"] == "read"));
 }
-
-

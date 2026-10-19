@@ -2,16 +2,16 @@ use axum::body::Body;
 use axum::http::{HeaderValue, Request, StatusCode};
 use rudra_proxy::config::{AppConfig, CliArgs, ProxyConfig};
 use rudra_proxy::middleware::auth::constant_time_eq;
-use rudra_proxy::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
 use rudra_proxy::registry::ModelRegistry;
-use rudra_proxy::routes::{create_router, AppState};
+use rudra_proxy::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
+use rudra_proxy::routes::{AppState, create_router};
 use rudra_proxy::session::{SessionId, SessionManager};
 use rudra_proxy::upstream::payload::{
-    build_opencode_payload, convert_messages_to_responses_input, make_openai_terminal_chunk,
-    make_openai_tool_chunk, OpenAiChatRequest,
+    OpenAiChatRequest, build_opencode_payload, convert_messages_to_responses_input,
+    make_openai_terminal_chunk, make_openai_tool_chunk,
 };
 use rudra_proxy::upstream::{ProxyPool, UpstreamClient};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -29,7 +29,10 @@ fn test_constant_time_eq_comprehensive() {
     assert!(constant_time_eq("secret-token", "secret-token"));
     assert!(constant_time_eq("", ""));
     assert!(constant_time_eq("a", "a"));
-    assert!(constant_time_eq("sk-proj-1234567890abcdef", "sk-proj-1234567890abcdef"));
+    assert!(constant_time_eq(
+        "sk-proj-1234567890abcdef",
+        "sk-proj-1234567890abcdef"
+    ));
 
     // 2. Different lengths (must fail without panic)
     assert!(!constant_time_eq("secret", "secret-longer"));
@@ -43,8 +46,14 @@ fn test_constant_time_eq_comprehensive() {
     assert!(!constant_time_eq("secret-tokeX", "secret-token")); // last char
 
     // 4. Unicode & special characters
-    assert!(constant_time_eq("🔑-token-räksmörgås", "🔑-token-räksmörgås"));
-    assert!(!constant_time_eq("🔑-token-räksmörgås", "🔒-token-räksmörgås"));
+    assert!(constant_time_eq(
+        "🔑-token-räksmörgås",
+        "🔑-token-räksmörgås"
+    ));
+    assert!(!constant_time_eq(
+        "🔑-token-räksmörgås",
+        "🔒-token-räksmörgås"
+    ));
 
     // 5. Very long tokens (e.g. 4096-char tokens)
     let long_a = "A".repeat(4096);
@@ -101,7 +110,7 @@ async fn test_auth_middleware_fuzzing_and_bypass_resistance() {
         "Bearer ",
         "Bearer",
         "Bearer wrong-key",
-        "Bearer super-secret-key-12",       // 1 char short
+        "Bearer super-secret-key-12",        // 1 char short
         "Bearer super-secret-key-1234",      // 1 char extra
         "Bearer super-secret-key-123\0null", // Null byte injection
         "Bearer super-secret-key-123\r\n",   // CRLF
@@ -209,7 +218,10 @@ async fn test_proxy_pool_concurrency_and_rotation_stress() {
         handles.push(tokio::spawn(async move {
             for _ in 0..requests_per_thread {
                 let (_client, proxy_url) = p.get_client();
-                assert!(proxy_url.is_some(), "Proxy URL must be returned when enabled");
+                assert!(
+                    proxy_url.is_some(),
+                    "Proxy URL must be returned when enabled"
+                );
             }
         }));
     }
@@ -269,7 +281,13 @@ fn test_payload_builder_fuzzed_and_extreme_parameters() {
         family: "muse".to_string(),
         protocol: ModelProtocol::Responses,
         reasoning: ReasoningType::Effort {
-            values: vec!["minimal".into(), "low".into(), "medium".into(), "high".into(), "xhigh".into()],
+            values: vec![
+                "minimal".into(),
+                "low".into(),
+                "medium".into(),
+                "high".into(),
+                "xhigh".into(),
+            ],
         },
         context_limit: 128000,
         output_limit: 8192,
@@ -360,7 +378,10 @@ fn test_message_conversion_responses_input_complex_structures() {
     // Function call output wire object
     assert_eq!(converted[3]["type"], "function_call_output");
     assert_eq!(converted[3]["call_id"], "call_abc123");
-    assert_eq!(converted[3]["output"], "File written successfully: 24 bytes");
+    assert_eq!(
+        converted[3]["output"],
+        "File written successfully: 24 bytes"
+    );
 }
 
 #[test]
@@ -378,8 +399,14 @@ fn test_openai_tool_chunk_and_terminal_chunk_robustness() {
     assert!(tool_chunk.ends_with("\n\n"));
     let json_part = tool_chunk.strip_prefix("data: ").unwrap().trim_end();
     let parsed: Value = serde_json::from_str(json_part).unwrap();
-    assert_eq!(parsed["choices"][0]["delta"]["tool_calls"][0]["id"], "call_test_1");
-    assert_eq!(parsed["choices"][0]["delta"]["tool_calls"][0]["function"]["name"], "write");
+    assert_eq!(
+        parsed["choices"][0]["delta"]["tool_calls"][0]["id"],
+        "call_test_1"
+    );
+    assert_eq!(
+        parsed["choices"][0]["delta"]["tool_calls"][0]["function"]["name"],
+        "write"
+    );
 
     // Verify terminal chunk without finish reason defaults to "stop"
     let term = make_openai_terminal_chunk("cmpl-999", "mimo-v2.6-flash-free", None);
@@ -401,7 +428,8 @@ fn test_tool_normalization_responses_and_chat() {
         }
     });
 
-    let (for_responses, name_resp) = rudra_proxy::upstream::payload::normalize_tool_for_responses(&standard_openai_tool);
+    let (for_responses, name_resp) =
+        rudra_proxy::upstream::payload::normalize_tool_for_responses(&standard_openai_tool);
     assert_eq!(name_resp, "calculator");
     assert_eq!(for_responses["name"], "calculator");
     assert_eq!(for_responses["description"], "Calculate math expressions");
@@ -417,10 +445,10 @@ fn test_tool_normalization_responses_and_chat() {
         }
     });
 
-    let (for_chat, name_chat) = rudra_proxy::upstream::payload::normalize_tool_for_chat(&flat_responses_tool);
+    let (for_chat, name_chat) =
+        rudra_proxy::upstream::payload::normalize_tool_for_chat(&flat_responses_tool);
     assert_eq!(name_chat, "search_db");
     assert_eq!(for_chat["type"], "function");
     assert_eq!(for_chat["function"]["name"], "search_db");
     assert_eq!(for_chat["function"]["description"], "Search database");
 }
-

@@ -219,7 +219,13 @@ mod tests {
             fn normalize_tool(&self, tool: &Value) -> (Value, String) {
                 (tool.clone(), String::new())
             }
-            fn inject_mandatory_tools(&self, _tools: &mut Vec<Value>, _has_bash: bool, _has_read: bool) {}
+            fn inject_mandatory_tools(
+                &self,
+                _tools: &mut Vec<Value>,
+                _has_bash: bool,
+                _has_read: bool,
+            ) {
+            }
             fn build_payload(
                 &self,
                 _req: &OpenAiChatRequest,
@@ -228,7 +234,11 @@ mod tests {
             ) -> Value {
                 json!({})
             }
-            fn parse_stream_event(&self, _event_type: &str, _data: &Value) -> Option<StreamChunkDelta> {
+            fn parse_stream_event(
+                &self,
+                _event_type: &str,
+                _data: &Value,
+            ) -> Option<StreamChunkDelta> {
                 None
             }
             fn accumulate_non_streaming(
@@ -276,11 +286,17 @@ mod tests {
 
         // Dummy tools injected
         let tools = payload["tools"].as_array().expect("tools array");
-        let bash_tool = tools.iter().find(|t| t["name"] == "bash").expect("bash tool");
+        let bash_tool = tools
+            .iter()
+            .find(|t| t["name"] == "bash")
+            .expect("bash tool");
         assert_eq!(bash_tool["strict"], false);
         assert!(bash_tool["parameters"]["properties"]["command"].is_object());
 
-        let read_tool = tools.iter().find(|t| t["name"] == "read").expect("read tool");
+        let read_tool = tools
+            .iter()
+            .find(|t| t["name"] == "read")
+            .expect("read tool");
         assert_eq!(read_tool["strict"], false);
         assert!(read_tool["parameters"]["properties"]["filePath"].is_object());
 
@@ -326,7 +342,10 @@ mod tests {
 
         // Dummy tools injected for Chat Completions
         let tools = payload["tools"].as_array().expect("tools array");
-        let bash_tool = tools.iter().find(|t| t["function"]["name"] == "bash").expect("bash tool");
+        let bash_tool = tools
+            .iter()
+            .find(|t| t["function"]["name"] == "bash")
+            .expect("bash tool");
         assert_eq!(bash_tool["function"]["strict"], false);
         assert!(bash_tool["function"]["parameters"]["properties"]["command"].is_object());
 
@@ -339,7 +358,9 @@ mod tests {
                 }
             }]
         });
-        let delta = adapter.parse_stream_event("", &event).expect("stream chunk");
+        let delta = adapter
+            .parse_stream_event("", &event)
+            .expect("stream chunk");
         assert_eq!(delta.content, Some("42".to_string()));
         assert_eq!(delta.reasoning_content, Some("calculating...".to_string()));
     }

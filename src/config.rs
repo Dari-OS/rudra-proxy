@@ -541,11 +541,11 @@ pub fn default_aliases() -> HashMap<String, String> {
     let mut map = HashMap::new();
     map.insert(
         "gpt-4o".to_string(),
-        "muse-spark-1.3-contributor-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
     );
     map.insert(
         "gpt-4".to_string(),
-        "muse-spark-1.3-contributor-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
     );
     map.insert(
         "gpt-3.5-turbo".to_string(),
@@ -559,16 +559,20 @@ pub fn default_aliases() -> HashMap<String, String> {
         "llama3".to_string(),
         "nemotron-3.5-lightning-free".to_string(),
     );
-    map.insert(
-        "default".to_string(),
-        "mimo-v2.6-flash-free".to_string(),
-    );
-    map.insert(
-        "jev".to_string(),
-        "jev-1.13-free".to_string(),
-    );
+    map.insert("default".to_string(), "mimo-v2.6-flash-free".to_string());
+    map.insert("jev".to_string(), "jev-1.13-free".to_string());
 
     // Backward-compatible fallbacks for models sunset or deprecated upstream
+    map.insert(
+        "muse-spark-1.3-contributor-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
+    );
+    map.insert(
+        "muse-spark-1.2-contributor-free".to_string(),
+        "nemotron-3.5-super-vl-free".to_string(),
+    );
+    map.insert("cat-jam-free".to_string(), "beam-free".to_string());
+    map.insert("ll-alpha-free".to_string(), "beam-free".to_string());
     map.insert(
         "step-5-preview-free".to_string(),
         "nemotron-3.5-super-vl-free".to_string(),
@@ -589,9 +593,6 @@ pub fn default_aliases() -> HashMap<String, String> {
         "ling-3.0-flash-fin-free".to_string(),
         "glm-5.3-flash-free".to_string(),
     );
-    map.insert(
-        "exo-free".to_string(),
-        "space-bunny-free".to_string(),
-    );
+    map.insert("exo-free".to_string(), "space-bunny-free".to_string());
     map
 }

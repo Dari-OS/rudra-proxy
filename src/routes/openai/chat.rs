@@ -1,14 +1,14 @@
 use crate::registry::metadata::ModelProtocol;
 use crate::routes::AppState;
 use crate::upstream::payload::{
-    build_opencode_payload, make_openai_chunk, make_openai_completion, make_openai_terminal_chunk,
-    make_openai_tool_chunk, OpenAiChatRequest,
+    OpenAiChatRequest, build_opencode_payload, make_openai_chunk, make_openai_completion,
+    make_openai_terminal_chunk, make_openai_tool_chunk,
 };
+use axum::Json;
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use rand::Rng;
@@ -62,7 +62,11 @@ pub async fn chat_completions(
             payload.extra.get("questions"),
         );
 
-        let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
+        let response = match state
+            .upstream
+            .dispatch_systemone(&session_id, &sys_payload)
+            .await
+        {
             Ok(res) => res,
             Err(err) => {
                 error!("Failed to reach System One gateway: {err}");
@@ -91,28 +95,41 @@ pub async fn chat_completions(
         let completion_id = generate_completion_id();
 
         return if payload.stream {
-            let chunk1 = make_openai_chunk(&completion_id, &payload.model, Some(&formatted_text), None);
+            let chunk1 =
+                make_openai_chunk(&completion_id, &payload.model, Some(&formatted_text), None);
             let chunk2 = make_openai_terminal_chunk(&completion_id, &payload.model, None);
             Response::builder()
                 .header(header::CONTENT_TYPE, "text/event-stream")
                 .header("x-opencode-session", session_id.as_str())
                 .header("x-opencode-session-id", session_id.as_str())
                 .body(Body::from(format!("{chunk1}{chunk2}")))
-                .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Stream error").into_response())
+                .unwrap_or_else(|_| {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Stream error").into_response()
+                })
         } else {
-            let completion_json = make_openai_completion(&completion_id, &payload.model, &formatted_text, None, None, None);
+            let completion_json = make_openai_completion(
+                &completion_id,
+                &payload.model,
+                &formatted_text,
+                None,
+                None,
+                None,
+            );
             Response::builder()
                 .header(header::CONTENT_TYPE, "application/json")
                 .header("x-opencode-session", session_id.as_str())
                 .header("x-opencode-session-id", session_id.as_str())
                 .body(Body::from(completion_json.to_string()))
-                .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response())
+                .unwrap_or_else(|_| {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "JSON error").into_response()
+                })
         };
     }
 
     // 3. Build upstream payload with dummy tools and reasoning
     let override_effort = state.registry.get_override_effort(&model_meta.id);
-    let upstream_payload = build_opencode_payload(&payload, &model_meta, override_effort.as_deref());
+    let upstream_payload =
+        build_opencode_payload(&payload, &model_meta, override_effort.as_deref());
 
     // 4. Dispatch to OpenCode Zen gateway
     let response = match state
@@ -171,8 +188,13 @@ pub async fn chat_completions(
                             if adapter.protocol() == ModelProtocol::ChatCompletions {
                                 let _ = tx.send(Ok("data: [DONE]\n\n".to_string())).await;
                             } else {
-                                let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
-                                let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
+                                let finish = if has_tool_calls {
+                                    Some("tool_calls")
+                                } else {
+                                    Some("stop")
+                                };
+                                let chunk =
+                                    make_openai_terminal_chunk(&completion_id, &model_name, finish);
                                 let _ = tx.send(Ok(chunk)).await;
                             }
                             sent_terminal = true;
@@ -186,10 +208,16 @@ pub async fn chat_completions(
                             }
 
                             if adapter.protocol() == ModelProtocol::Responses {
-                                let event_type = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                                let event_type =
+                                    v.get("type").and_then(|t| t.as_str()).unwrap_or("");
                                 if let Some(delta) = adapter.parse_stream_event(event_type, &v) {
                                     if let Some(content) = delta.content {
-                                        let chunk = make_openai_chunk(&completion_id, &model_name, Some(&content), None);
+                                        let chunk = make_openai_chunk(
+                                            &completion_id,
+                                            &model_name,
+                                            Some(&content),
+                                            None,
+                                        );
                                         if tx.send(Ok(chunk)).await.is_err() {
                                             break;
                                         }
@@ -214,7 +242,11 @@ pub async fn chat_completions(
                                         } else {
                                             finish.as_str()
                                         };
-                                        let chunk = make_openai_terminal_chunk(&completion_id, &model_name, Some(real_finish));
+                                        let chunk = make_openai_terminal_chunk(
+                                            &completion_id,
+                                            &model_name,
+                                            Some(real_finish),
+                                        );
                                         let _ = tx.send(Ok(chunk)).await;
                                         sent_terminal = true;
                                         break;
@@ -238,7 +270,11 @@ pub async fn chat_completions(
             }
 
             if !sent_terminal && !had_error && adapter.protocol() == ModelProtocol::Responses {
-                let finish = if has_tool_calls { Some("tool_calls") } else { Some("stop") };
+                let finish = if has_tool_calls {
+                    Some("tool_calls")
+                } else {
+                    Some("stop")
+                };
                 let chunk = make_openai_terminal_chunk(&completion_id, &model_name, finish);
                 let _ = tx.send(Ok(chunk)).await;
             }

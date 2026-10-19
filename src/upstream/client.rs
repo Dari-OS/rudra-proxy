@@ -20,8 +20,8 @@ pub struct UpstreamClient {
 
 impl UpstreamClient {
     pub fn new(proxy_pool: ProxyPool, upstream_api_key: String) -> Self {
-        let project_id = std::env::var("OPENCODE_PROJECT_ID")
-            .unwrap_or_else(|_| DEFAULT_PROJECT_ID.to_string());
+        let project_id =
+            std::env::var("OPENCODE_PROJECT_ID").unwrap_or_else(|_| DEFAULT_PROJECT_ID.to_string());
         Self {
             proxy_pool,
             upstream_api_key,
@@ -65,7 +65,9 @@ impl UpstreamClient {
             Some(id) if !id.is_empty() => id.to_string(),
             _ => RequestId::generate().to_string(),
         };
-        let proj_id = project_id.filter(|p| !p.is_empty()).unwrap_or(&self.project_id);
+        let proj_id = project_id
+            .filter(|p| !p.is_empty())
+            .unwrap_or(&self.project_id);
 
         client
             .post(target_url)
@@ -112,7 +114,9 @@ impl UpstreamClient {
             Some(id) if !id.is_empty() => id.to_string(),
             _ => RequestId::generate().to_string(),
         };
-        let proj_id = project_id.filter(|p| !p.is_empty()).unwrap_or(&self.project_id);
+        let proj_id = project_id
+            .filter(|p| !p.is_empty())
+            .unwrap_or(&self.project_id);
 
         client
             .post(OPENCODE_SYSTEMONE_URL)
@@ -139,4 +143,3 @@ impl UpstreamClient {
         &self.project_id
     }
 }
-

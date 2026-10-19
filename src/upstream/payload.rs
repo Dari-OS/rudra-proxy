@@ -1,6 +1,6 @@
 use crate::registry::metadata::ModelMetadata;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Standard OpenAI chat completion request payload
@@ -83,8 +83,14 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
     for msg in messages {
         let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("");
         if role == "tool" {
-            let call_id = msg.get("tool_call_id").and_then(|id| id.as_str()).unwrap_or("");
-            let content = msg.get("content").cloned().unwrap_or(Value::String(String::new()));
+            let call_id = msg
+                .get("tool_call_id")
+                .and_then(|id| id.as_str())
+                .unwrap_or("");
+            let content = msg
+                .get("content")
+                .cloned()
+                .unwrap_or(Value::String(String::new()));
             let output_str = if let Some(s) = content.as_str() {
                 s.to_string()
             } else {
@@ -99,27 +105,37 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
         }
 
         if role == "assistant"
-            && let Some(tool_calls) = msg.get("tool_calls").and_then(|t| t.as_array()) {
-                if let Some(content) = msg.get("content").and_then(|c| c.as_str())
-                    && !content.is_empty() {
-                        input.push(json!({
-                            "role": "assistant",
-                            "content": content
-                        }));
-                    }
-                for tc in tool_calls {
-                    let call_id = tc.get("id").and_then(|i| i.as_str()).unwrap_or("");
-                    let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
-                    let arguments = tc.get("function").and_then(|f| f.get("arguments")).and_then(|a| a.as_str()).unwrap_or("");
-                    input.push(json!({
-                        "type": "function_call",
-                        "call_id": call_id,
-                        "name": name,
-                        "arguments": arguments
-                    }));
-                }
-                continue;
+            && let Some(tool_calls) = msg.get("tool_calls").and_then(|t| t.as_array())
+        {
+            if let Some(content) = msg.get("content").and_then(|c| c.as_str())
+                && !content.is_empty()
+            {
+                input.push(json!({
+                    "role": "assistant",
+                    "content": content
+                }));
             }
+            for tc in tool_calls {
+                let call_id = tc.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                let name = tc
+                    .get("function")
+                    .and_then(|f| f.get("name"))
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("");
+                let arguments = tc
+                    .get("function")
+                    .and_then(|f| f.get("arguments"))
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("");
+                input.push(json!({
+                    "type": "function_call",
+                    "call_id": call_id,
+                    "name": name,
+                    "arguments": arguments
+                }));
+            }
+            continue;
+        }
 
         input.push(msg.clone());
     }
@@ -131,9 +147,19 @@ pub fn convert_messages_to_responses_input(messages: &[Value]) -> Vec<Value> {
 /// directly under the tool object rather than wrapped in a `function` object.
 pub fn normalize_tool_for_responses(t: &Value) -> (Value, String) {
     if let Some(func) = t.get("function") {
-        let name = func.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-        let desc = func.get("description").cloned().unwrap_or(Value::String(String::new()));
-        let params = func.get("parameters").cloned().unwrap_or(json!({"type": "object", "properties": {}}));
+        let name = func
+            .get("name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("")
+            .to_string();
+        let desc = func
+            .get("description")
+            .cloned()
+            .unwrap_or(Value::String(String::new()));
+        let params = func
+            .get("parameters")
+            .cloned()
+            .unwrap_or(json!({"type": "object", "properties": {}}));
         let mut converted = json!({
             "type": "function",
             "name": name,
@@ -145,7 +171,11 @@ pub fn normalize_tool_for_responses(t: &Value) -> (Value, String) {
         }
         (converted, name)
     } else {
-        let name = t.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+        let name = t
+            .get("name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("")
+            .to_string();
         (t.clone(), name)
     }
 }
@@ -154,11 +184,21 @@ pub fn normalize_tool_for_responses(t: &Value) -> (Value, String) {
 /// where tools are wrapped as `{"type": "function", "function": { ... }}`.
 pub fn normalize_tool_for_chat(t: &Value) -> (Value, String) {
     if let Some(func) = t.get("function") {
-        let name = func.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+        let name = func
+            .get("name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("")
+            .to_string();
         (t.clone(), name)
     } else if let Some(name) = t.get("name").and_then(|n| n.as_str()) {
-        let desc = t.get("description").cloned().unwrap_or(Value::String(String::new()));
-        let params = t.get("parameters").cloned().unwrap_or(json!({"type": "object", "properties": {}}));
+        let desc = t
+            .get("description")
+            .cloned()
+            .unwrap_or(Value::String(String::new()));
+        let params = t
+            .get("parameters")
+            .cloned()
+            .unwrap_or(json!({"type": "object", "properties": {}}));
         let mut wrapped = json!({
             "type": "function",
             "function": {
@@ -340,9 +380,10 @@ pub fn make_openai_completion(
     };
 
     if let Some(tc) = tool_calls
-        && !tc.is_empty() {
-            message["tool_calls"] = json!(tc);
-        }
+        && !tc.is_empty()
+    {
+        message["tool_calls"] = json!(tc);
+    }
 
     json!({
         "id": id,

@@ -1,8 +1,8 @@
+use axum::Json;
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde_json::json;
 
 /// Constant-time comparison between two string slices to prevent timing side-channel attacks.

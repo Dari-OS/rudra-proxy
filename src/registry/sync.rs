@@ -7,8 +7,7 @@ use tracing::{info, warn};
 pub const OPENCODE_ZEN_MODELS_URL: &str = "https://opencode.ai/zen/v1/models";
 pub const OPENCODE_CATALOG_URL: &str = "https://models.opencode.ai/api.json";
 pub const DEFAULT_USER_AGENT: &str =
-    "opencode/1.19.2 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.2";
-
+    "opencode/1.19.3 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.2";
 
 #[derive(Deserialize)]
 struct ZenModelsResponse {
@@ -102,15 +101,13 @@ pub async fn fetch_and_sync_models(
         .send()
         .await
     {
-        Ok(res) if res.status().is_success() => {
-            match res.json::<CatalogResponse>().await {
-                Ok(parsed) => parsed.opencode.map(|p| p.models).unwrap_or_default(),
-                Err(e) => {
-                    warn!("Failed to parse models.opencode.ai catalog: {e}");
-                    HashMap::new()
-                }
+        Ok(res) if res.status().is_success() => match res.json::<CatalogResponse>().await {
+            Ok(parsed) => parsed.opencode.map(|p| p.models).unwrap_or_default(),
+            Err(e) => {
+                warn!("Failed to parse models.opencode.ai catalog: {e}");
+                HashMap::new()
             }
-        }
+        },
         Ok(res) => {
             warn!("models.opencode.ai returned status {}", res.status());
             HashMap::new()

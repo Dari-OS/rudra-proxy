@@ -1,9 +1,7 @@
-use super::{
-    ModelAdapter, ModelQuirks, NonStreamingAccumulator, StreamChunkDelta,
-};
+use super::{ModelAdapter, ModelQuirks, NonStreamingAccumulator, StreamChunkDelta};
 use crate::registry::metadata::{ModelMetadata, ModelProtocol};
 use crate::upstream::payload::OpenAiChatRequest;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Model adapter for TypeSafe AI System One decision models (`jev-1.13`, `jev-1.13-free`)
 /// targeting the `/zen/v1/systemone` evaluation endpoint and chat bridge.

@@ -1,7 +1,5 @@
 use crate::config::{AppConfig, CliArgs, DoctorArgs};
-use crate::registry::sync::{
-    DEFAULT_USER_AGENT, OPENCODE_CATALOG_URL, OPENCODE_ZEN_MODELS_URL,
-};
+use crate::registry::sync::{DEFAULT_USER_AGENT, OPENCODE_CATALOG_URL, OPENCODE_ZEN_MODELS_URL};
 use crate::session::SessionId;
 use std::net::TcpListener;
 use std::time::Instant;
@@ -43,7 +41,10 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
     let bind_addr = format!("{}:{}", host_to_test, config.port);
     match TcpListener::bind(&bind_addr) {
         Ok(_) => {
-            println!("[✓] Port {} is available for binding on {}", config.port, host_to_test);
+            println!(
+                "[✓] Port {} is available for binding on {}",
+                config.port, host_to_test
+            );
         }
         Err(e) => {
             all_ok = false;
@@ -60,7 +61,8 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
                          \x20   Response from /api/version: {}\n\
                          \x20   Recommendation: Run rudra on a different port (e.g. `rudra serve --port 11435`)\n\
                          \x20   or temporarily stop Ollama (`systemctl stop ollama` or `pkill ollama`).",
-                        config.port, version_text.trim()
+                        config.port,
+                        version_text.trim()
                     );
                 }
                 _ => {
@@ -108,7 +110,10 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
         }
         Err(e) => {
             all_ok = false;
-            println!("[✗] Failed to reach OpenCode Zen gateway ({}): {e}", OPENCODE_ZEN_MODELS_URL);
+            println!(
+                "[✗] Failed to reach OpenCode Zen gateway ({}): {e}",
+                OPENCODE_ZEN_MODELS_URL
+            );
         }
     }
 
@@ -149,7 +154,10 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
         );
     } else {
         all_ok = false;
-        println!("[✗] Session ID generator produced invalid session: {}", test_ses);
+        println!(
+            "[✗] Session ID generator produced invalid session: {}",
+            test_ses
+        );
     }
 
     // 5. Check Proxy Pool Reachability if configured
@@ -174,7 +182,11 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
                     {
                         Ok(proxied_client) => {
                             let p_start = Instant::now();
-                            match proxied_client.get("https://opencode.ai/favicon.ico").send().await {
+                            match proxied_client
+                                .get("https://opencode.ai/favicon.ico")
+                                .send()
+                                .await
+                            {
                                 Ok(res) if res.status().is_success() => {
                                     println!(
                                         "[✓] Outbound proxy '{}' connected ({}ms)",
@@ -191,7 +203,10 @@ pub async fn execute(args: DoctorArgs) -> Result<(), Box<dyn std::error::Error>>
                                 }
                                 Err(e) => {
                                     all_ok = false;
-                                    println!("[✗] Outbound proxy '{}' connection test failed: {e}", p_url);
+                                    println!(
+                                        "[✗] Outbound proxy '{}' connection test failed: {e}",
+                                        p_url
+                                    );
                                 }
                             }
                         }

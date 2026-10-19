@@ -1,5 +1,5 @@
 use crate::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Maps and clamps reasoning effort for Responses API models (e.g. muse-*)
 pub fn resolve_responses_reasoning(
@@ -51,10 +51,7 @@ pub fn resolve_chat_reasoning_effort(
                 .to_ascii_lowercase();
 
             // Direct match
-            if let Some(matched) = values
-                .iter()
-                .find(|v| v.eq_ignore_ascii_case(&requested))
-            {
+            if let Some(matched) = values.iter().find(|v| v.eq_ignore_ascii_case(&requested)) {
                 return Some(matched.clone());
             }
 

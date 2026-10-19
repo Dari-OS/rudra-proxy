@@ -9,7 +9,7 @@ pub mod upstream;
 
 use crate::config::AppConfig;
 use crate::registry::ModelRegistry;
-use crate::routes::{create_router_with_cors, AppState};
+use crate::routes::{AppState, create_router_with_cors};
 use crate::session::SessionManager;
 use crate::upstream::{ProxyPool, UpstreamClient};
 use std::net::SocketAddr;
@@ -45,9 +45,15 @@ pub async fn run_server(config: AppConfig) -> Result<(), Box<dyn std::error::Err
     if config.dry_run {
         let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
         println!("[✓] Configuration valid.");
-        println!("[✓] Dry run: verified config, model catalog loaded ({} models).", registry.list_models().await.len());
+        println!(
+            "[✓] Dry run: verified config, model catalog loaded ({} models).",
+            registry.list_models().await.len()
+        );
         match std::net::TcpListener::bind(addr) {
-            Ok(_) => println!("[✓] Port {} is available for binding on {}", config.port, config.host),
+            Ok(_) => println!(
+                "[✓] Port {} is available for binding on {}",
+                config.port, config.host
+            ),
             Err(e) => eprintln!("[!] Port collision warning: Cannot bind to {addr}: {e}"),
         }
         println!("[✓] Dry run completed successfully. Exiting without starting HTTP listener.");
@@ -76,9 +82,9 @@ pub async fn run_server(config: AppConfig) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
-use clap::Parser;
 use crate::config::{CliArgs, Commands};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use clap::Parser;
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// CLI entrypoint for both rudra and rudra-proxy binaries
 pub fn run_main() -> Result<(), Box<dyn std::error::Error>> {
@@ -106,10 +112,7 @@ pub fn run_main() -> Result<(), Box<dyn std::error::Error>> {
 
     if !is_simple_cmd {
         tracing_subscriber::registry()
-            .with(
-                EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| filter_str.into()),
-            )
+            .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| filter_str.into()))
             .with(tracing_subscriber::fmt::layer())
             .init();
     }

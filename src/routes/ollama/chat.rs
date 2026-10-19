@@ -1,16 +1,16 @@
 use crate::registry::metadata::ModelProtocol;
 use crate::routes::AppState;
-use crate::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use crate::upstream::payload::{OpenAiChatRequest, build_opencode_payload};
+use axum::Json;
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use chrono::Utc;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{error, info};
@@ -69,18 +69,33 @@ pub async fn chat(
     // Bridge for System One models
     if model_meta.protocol == ModelProtocol::SystemOne {
         let sys_adapter = crate::models::systemone::SystemOneAdapter;
-        let sys_payload = sys_adapter.build_chat_bridge_payload(&model_meta.id, &payload.messages, None);
+        let sys_payload =
+            sys_adapter.build_chat_bridge_payload(&model_meta.id, &payload.messages, None);
 
-        let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
+        let response = match state
+            .upstream
+            .dispatch_systemone(&session_id, &sys_payload)
+            .await
+        {
             Ok(res) => res,
-            Err(err) => return (StatusCode::BAD_GATEWAY, Json(json!({"error": err.to_string()}))).into_response(),
+            Err(err) => {
+                return (
+                    StatusCode::BAD_GATEWAY,
+                    Json(json!({"error": err.to_string()})),
+                )
+                    .into_response();
+            }
         };
 
         let status = response.status();
         let body_bytes = response.bytes().await.unwrap_or_default();
         if !status.is_success() {
             let err_text = String::from_utf8_lossy(&body_bytes);
-            return (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": err_text}))).into_response();
+            return (
+                StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(json!({"error": err_text})),
+            )
+                .into_response();
         }
 
         let formatted_text = sys_adapter
@@ -122,7 +137,8 @@ pub async fn chat(
     };
 
     let override_effort = state.registry.get_override_effort(&model_meta.id);
-    let upstream_payload = build_opencode_payload(&openai_req, &model_meta, override_effort.as_deref());
+    let upstream_payload =
+        build_opencode_payload(&openai_req, &model_meta, override_effort.as_deref());
 
     let response = match state
         .upstream
@@ -269,8 +285,8 @@ pub async fn chat(
                 .tool_calls
                 .into_values()
                 .map(|(_id, _type, name, args)| {
-                    let args_val = serde_json::from_str::<Value>(&args)
-                        .unwrap_or_else(|_| json!({}));
+                    let args_val =
+                        serde_json::from_str::<Value>(&args).unwrap_or_else(|_| json!({}));
                     json!({
                         "function": {
                             "name": name,

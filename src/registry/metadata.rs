@@ -63,11 +63,7 @@ impl ModelProtocol {
     }
 
     /// Checks whether a model belongs to the OpenAI Responses API family (e.g. Muse).
-    pub fn is_responses(
-        id: &str,
-        family: Option<&str>,
-        description: Option<&str>,
-    ) -> bool {
+    pub fn is_responses(id: &str, family: Option<&str>, description: Option<&str>) -> bool {
         let id_lower = id.to_ascii_lowercase();
         if id_lower.starts_with("muse")
             || id_lower.contains("muse-")
@@ -149,34 +145,84 @@ mod tests {
     #[test]
     fn test_system_one_model_auto_detection() {
         // ID based detection
-        assert_eq!(ModelProtocol::detect("jev-1.13", None, None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("jev-1.13-free", None, None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("jev-1.14", None, None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("jev-2.0-preview", None, None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("typesafe-jev-free", None, None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("systemone-reasoner", None, None, None), ModelProtocol::SystemOne);
+        assert_eq!(
+            ModelProtocol::detect("jev-1.13", None, None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("jev-1.13-free", None, None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("jev-1.14", None, None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("jev-2.0-preview", None, None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("typesafe-jev-free", None, None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("systemone-reasoner", None, None, None),
+            ModelProtocol::SystemOne
+        );
 
         // Family / provider based detection
-        assert_eq!(ModelProtocol::detect("custom-model", Some("typesafe"), None, None), ModelProtocol::SystemOne);
-        assert_eq!(ModelProtocol::detect("nextgen-decision", Some("system-one"), None, None), ModelProtocol::SystemOne);
+        assert_eq!(
+            ModelProtocol::detect("custom-model", Some("typesafe"), None, None),
+            ModelProtocol::SystemOne
+        );
+        assert_eq!(
+            ModelProtocol::detect("nextgen-decision", Some("system-one"), None, None),
+            ModelProtocol::SystemOne
+        );
 
         // Description based detection
         assert_eq!(
-            ModelProtocol::detect("unnamed-model", None, Some("TypeSafe AI decision engine"), None),
+            ModelProtocol::detect(
+                "unnamed-model",
+                None,
+                Some("TypeSafe AI decision engine"),
+                None
+            ),
             ModelProtocol::SystemOne
         );
 
         // Other protocols
-        assert_eq!(ModelProtocol::detect("muse-spark-1.3", None, None, None), ModelProtocol::Responses);
-        assert_eq!(ModelProtocol::detect("mimo-v2.6-flash-free", None, None, None), ModelProtocol::ChatCompletions);
+        assert_eq!(
+            ModelProtocol::detect("muse-spark-1.3", None, None, None),
+            ModelProtocol::Responses
+        );
+        assert_eq!(
+            ModelProtocol::detect("mimo-v2.6-flash-free", None, None, None),
+            ModelProtocol::ChatCompletions
+        );
     }
 
     #[test]
     fn test_responses_model_auto_detection() {
-        assert_eq!(ModelProtocol::detect("muse-spark-1.3-contributor-free", None, None, None), ModelProtocol::Responses);
-        assert_eq!(ModelProtocol::detect("muse-v2", None, None, None), ModelProtocol::Responses);
-        assert_eq!(ModelProtocol::detect("contributor-muse-preview", None, None, None), ModelProtocol::Responses);
-        assert_eq!(ModelProtocol::detect("experimental-model", Some("muse"), None, None), ModelProtocol::Responses);
-        assert_eq!(ModelProtocol::detect("custom-llm", None, Some("OpenAI responses api model"), None), ModelProtocol::Responses);
+        assert_eq!(
+            ModelProtocol::detect("muse-spark-1.3-contributor-free", None, None, None),
+            ModelProtocol::Responses
+        );
+        assert_eq!(
+            ModelProtocol::detect("muse-v2", None, None, None),
+            ModelProtocol::Responses
+        );
+        assert_eq!(
+            ModelProtocol::detect("contributor-muse-preview", None, None, None),
+            ModelProtocol::Responses
+        );
+        assert_eq!(
+            ModelProtocol::detect("experimental-model", Some("muse"), None, None),
+            ModelProtocol::Responses
+        );
+        assert_eq!(
+            ModelProtocol::detect("custom-llm", None, Some("OpenAI responses api model"), None),
+            ModelProtocol::Responses
+        );
     }
 }

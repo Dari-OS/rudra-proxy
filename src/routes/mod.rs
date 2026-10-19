@@ -8,9 +8,9 @@ use crate::middleware::{auth_middleware, logging_middleware};
 use crate::registry::ModelRegistry;
 use crate::session::SessionManager;
 use crate::upstream::UpstreamClient;
+use axum::Router;
 use axum::middleware;
 use axum::routing::{get, post};
-use axum::Router;
 use tower_http::cors::CorsLayer;
 
 #[derive(Clone)]

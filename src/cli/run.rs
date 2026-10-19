@@ -2,7 +2,7 @@ use crate::config::{AppConfig, CliArgs, RunArgs};
 use crate::registry::ModelRegistry;
 use crate::session::SessionId;
 use crate::upstream::client::UpstreamClient;
-use crate::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use crate::upstream::payload::{OpenAiChatRequest, build_opencode_payload};
 use crate::upstream::proxy_pool::ProxyPool;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
@@ -186,7 +186,10 @@ async fn send_and_stream(
             }
         });
 
-        let res = match upstream_client.dispatch_systemone(session_id, &sys_payload).await {
+        let res = match upstream_client
+            .dispatch_systemone(session_id, &sys_payload)
+            .await
+        {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("[!] Connection error to upstream System One gateway: {e}");
@@ -270,17 +273,20 @@ async fn send_and_stream(
                     if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
                         if let Some(first) = choices.first()
                             && let Some(delta) = first.get("delta")
-                                && let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
-                                    if ttft.is_none() {
-                                        ttft = Some(start_total.elapsed().as_millis());
-                                    }
-                                    token_chunks += 1;
-                                    generated_chars += content.len();
-                                    print!("{content}");
-                                    io::stdout().flush()?;
-                                    full_response.push_str(content);
-                                }
-                    } else if json.get("type").and_then(|t| t.as_str()) == Some("response.output_text.delta") {
+                            && let Some(content) = delta.get("content").and_then(|c| c.as_str())
+                        {
+                            if ttft.is_none() {
+                                ttft = Some(start_total.elapsed().as_millis());
+                            }
+                            token_chunks += 1;
+                            generated_chars += content.len();
+                            print!("{content}");
+                            io::stdout().flush()?;
+                            full_response.push_str(content);
+                        }
+                    } else if json.get("type").and_then(|t| t.as_str())
+                        == Some("response.output_text.delta")
+                    {
                         if let Some(delta) = json.get("delta").and_then(|d| d.as_str()) {
                             if ttft.is_none() {
                                 ttft = Some(start_total.elapsed().as_millis());

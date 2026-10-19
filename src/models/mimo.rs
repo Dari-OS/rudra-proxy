@@ -2,8 +2,8 @@ use super::{
     ExtractedToolCallChunk, ModelAdapter, ModelQuirks, NonStreamingAccumulator, StreamChunkDelta,
 };
 use crate::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
-use crate::upstream::payload::{normalize_tool_for_chat, OpenAiChatRequest};
-use serde_json::{json, Value};
+use crate::upstream::payload::{OpenAiChatRequest, normalize_tool_for_chat};
+use serde_json::{Value, json};
 
 /// Model adapter for Mimo and Nemotron models with interleaved reasoning streams
 /// (`delta.reasoning_content`) and strict rejection of `reasoning_effort` payload parameters.
@@ -168,11 +168,23 @@ impl ModelAdapter for MimoAdapter {
                     }
                     if let Some(tcs) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
                         for tc in tcs {
-                            let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                            let idx =
+                                tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                             let id = tc.get("id").and_then(|i| i.as_str()).map(|s| s.to_string());
-                            let tool_type = tc.get("type").and_then(|t| t.as_str()).map(|s| s.to_string());
-                            let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).map(|s| s.to_string());
-                            let args_delta = tc.get("function").and_then(|f| f.get("arguments")).and_then(|a| a.as_str()).map(|s| s.to_string());
+                            let tool_type = tc
+                                .get("type")
+                                .and_then(|t| t.as_str())
+                                .map(|s| s.to_string());
+                            let name = tc
+                                .get("function")
+                                .and_then(|f| f.get("name"))
+                                .and_then(|n| n.as_str())
+                                .map(|s| s.to_string());
+                            let args_delta = tc
+                                .get("function")
+                                .and_then(|f| f.get("arguments"))
+                                .and_then(|a| a.as_str())
+                                .map(|s| s.to_string());
                             delta.tool_calls.push(ExtractedToolCallChunk {
                                 index: idx,
                                 id,
@@ -214,9 +226,11 @@ impl ModelAdapter for MimoAdapter {
                     {
                         acc.reasoning.push_str(reasoning);
                     }
-                    if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
+                    if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array())
+                    {
                         for tc in tool_calls {
-                            let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                            let idx =
+                                tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                             let entry = acc.tool_calls.entry(idx).or_insert((
                                 String::new(),
                                 "function".to_string(),

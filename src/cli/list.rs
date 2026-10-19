@@ -1,15 +1,15 @@
 use crate::config::{AppConfig, CliArgs, ListArgs, ListFormat};
 use crate::registry::baseline::get_baseline_models;
 use crate::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
-use crate::registry::sync::{fetch_and_sync_models, OPENCODE_ZEN_MODELS_URL};
+use crate::registry::sync::{OPENCODE_ZEN_MODELS_URL, fetch_and_sync_models};
 use crate::session::SessionId;
 use crate::upstream::client::UpstreamClient;
-use crate::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use crate::upstream::payload::{OpenAiChatRequest, build_opencode_payload};
 use crate::upstream::proxy_pool::ProxyPool;
 use chrono::Utc;
 use eventsource_stream::Eventsource;
-use futures::future::join_all;
 use futures::StreamExt;
+use futures::future::join_all;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -56,7 +56,10 @@ async fn probe_single_model(
                 }
             }
         });
-        match upstream_client.dispatch_systemone(&session_id, &payload).await {
+        match upstream_client
+            .dispatch_systemone(&session_id, &payload)
+            .await
+        {
             Ok(res) if res.status().is_success() => {
                 let latency = start.elapsed().as_millis() as u64;
                 let tps = if let Ok(body) = res.json::<serde_json::Value>().await {
@@ -78,9 +81,17 @@ async fn probe_single_model(
             }
             Ok(res) => {
                 let status_code = res.status();
+                let err_body = res.text().await.unwrap_or_default();
+                eprintln!(
+                    "[!] SystemOne probe failed for {}: HTTP {status_code} - {err_body}",
+                    model.id
+                );
                 (format!("error ({status_code})"), None, None)
             }
-            Err(_) => ("offline".to_string(), None, None),
+            Err(e) => {
+                eprintln!("[!] SystemOne probe network error for {}: {e}", model.id);
+                ("offline".to_string(), None, None)
+            }
         }
     } else {
         let chat_req = OpenAiChatRequest {
@@ -94,7 +105,10 @@ async fn probe_single_model(
             ..Default::default()
         };
         let payload = build_opencode_payload(&chat_req, model, None);
-        match upstream_client.dispatch(model.protocol, &session_id, &payload).await {
+        match upstream_client
+            .dispatch(model.protocol, &session_id, &payload)
+            .await
+        {
             Ok(res) if res.status().is_success() => {
                 let mut event_stream = res.bytes_stream().eventsource();
                 let mut ttft: Option<u128> = None;
@@ -107,10 +121,19 @@ async fn probe_single_model(
                             if event.data == "[DONE]" {
                                 break;
                             }
-                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&event.data) {
-                                let delta_text = if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
-                                    choices.first().and_then(|c| c.get("delta")).and_then(|d| d.get("content")).and_then(|s| s.as_str())
-                                } else if json.get("type").and_then(|t| t.as_str()) == Some("response.output_text.delta") {
+                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&event.data)
+                            {
+                                let delta_text = if let Some(choices) =
+                                    json.get("choices").and_then(|c| c.as_array())
+                                {
+                                    choices
+                                        .first()
+                                        .and_then(|c| c.get("delta"))
+                                        .and_then(|d| d.get("content"))
+                                        .and_then(|s| s.as_str())
+                                } else if json.get("type").and_then(|t| t.as_str())
+                                    == Some("response.output_text.delta")
+                                {
                                     json.get("delta").and_then(|d| d.as_str())
                                 } else {
                                     json.get("delta").and_then(|d| d.as_str())
@@ -150,9 +173,17 @@ async fn probe_single_model(
             }
             Ok(res) => {
                 let status_code = res.status();
+                let err_body = res.text().await.unwrap_or_default();
+                eprintln!(
+                    "[!] Chat probe failed for {}: HTTP {status_code} - {err_body}",
+                    model.id
+                );
                 (format!("error ({status_code})"), None, None)
             }
-            Err(_) => ("offline".to_string(), None, None),
+            Err(e) => {
+                eprintln!("[!] Chat probe network error for {}: {e}", model.id);
+                ("offline".to_string(), None, None)
+            }
         }
     }
 }
@@ -198,7 +229,10 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let proxy_pool = ProxyPool::new(&config.proxy, client.clone());
-    let upstream_client = Arc::new(UpstreamClient::new(proxy_pool, config.upstream_api_key.clone()));
+    let upstream_client = Arc::new(UpstreamClient::new(
+        proxy_pool,
+        config.upstream_api_key.clone(),
+    ));
 
     let model_values: Vec<ModelMetadata> = models.into_values().collect();
     let mut probe_results: HashMap<String, (String, Option<u64>, Option<f64>)> = HashMap::new();
@@ -280,9 +314,7 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "| Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |"
             );
-            println!(
-                "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
-            );
+            println!("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |");
             for m in &model_list {
                 let latency_display = m
                     .latency_ms
@@ -308,7 +340,14 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
         ListFormat::Table => {
             println!(
                 "{:<34} {:<12} {:<18} {:<14} {:<9} {:<9} {:<10} {:<12}",
-                "MODEL ID", "PROVIDER", "PROTOCOL", "REASONING", "CONTEXT", "STATUS", "LATENCY", "SPEED"
+                "MODEL ID",
+                "PROVIDER",
+                "PROTOCOL",
+                "REASONING",
+                "CONTEXT",
+                "STATUS",
+                "LATENCY",
+                "SPEED"
             );
             println!("{}", "-".repeat(125));
             for m in &model_list {

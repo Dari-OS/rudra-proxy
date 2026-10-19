@@ -1,10 +1,10 @@
 use crate::routes::AppState;
-use axum::extract::State;
-use axum::http::{header, HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum::extract::State;
+use axum::http::{HeaderMap, StatusCode, header};
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tracing::{error, info};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -86,9 +86,8 @@ pub async fn evaluate_systemone(
             .into_response();
     }
 
-    let result_json: Value = serde_json::from_slice(&body_bytes).unwrap_or_else(|_| {
-        json!({"raw": String::from_utf8_lossy(&body_bytes)})
-    });
+    let result_json: Value = serde_json::from_slice(&body_bytes)
+        .unwrap_or_else(|_| json!({"raw": String::from_utf8_lossy(&body_bytes)}));
 
     Response::builder()
         .header(header::CONTENT_TYPE, "application/json")
@@ -96,5 +95,7 @@ pub async fn evaluate_systemone(
         .header("x-opencode-session-id", session_id.as_str())
         .status(StatusCode::OK)
         .body(axum::body::Body::from(result_json.to_string()))
-        .unwrap_or_else(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Response build error").into_response())
+        .unwrap_or_else(|_| {
+            (StatusCode::INTERNAL_SERVER_ERROR, "Response build error").into_response()
+        })
 }

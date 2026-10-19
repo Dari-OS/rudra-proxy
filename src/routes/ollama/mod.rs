@@ -3,8 +3,8 @@ pub mod generate;
 pub mod tags;
 
 use crate::routes::AppState;
-use axum::routing::{get, post};
 use axum::Router;
+use axum::routing::{get, post};
 
 pub fn router() -> Router<AppState> {
     Router::new()

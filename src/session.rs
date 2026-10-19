@@ -22,7 +22,8 @@ pub struct SessionId(String);
 impl SessionId {
     /// Generate a fresh, valid OpenCode session ID with legitimate descending millisecond timestamp encoding.
     pub fn generate() -> Self {
-        const ALNUM_CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const ALNUM_CHARS: &[u8] =
+            b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -64,7 +65,10 @@ impl SessionId {
             return Err(SessionIdError::InvalidPrefix);
         }
         let hex_part = &s[4..16];
-        if !hex_part.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()) {
+        if !hex_part
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        {
             return Err(SessionIdError::InvalidHexPart);
         }
         let alnum_part = &s[16..30];
@@ -118,7 +122,8 @@ pub struct RequestId(String);
 impl RequestId {
     /// Generate a fresh, valid OpenCode request ID with ascending millisecond timestamp encoding.
     pub fn generate() -> Self {
-        const ALNUM_CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const ALNUM_CHARS: &[u8] =
+            b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -159,7 +164,10 @@ impl RequestId {
             return Err(RequestIdError::InvalidPrefix);
         }
         let hex_part = &s[4..16];
-        if !hex_part.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()) {
+        if !hex_part
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        {
             return Err(RequestIdError::InvalidHexPart);
         }
         let alnum_part = &s[16..30];
@@ -201,7 +209,6 @@ impl AsRef<str> for RequestId {
     }
 }
 
-
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -227,9 +234,10 @@ impl SessionManager {
     /// Otherwise uses the managed session ID, rotating every `rotate_after_requests` requests.
     pub async fn get_or_rotate_session(&self, client_header: Option<&str>) -> SessionId {
         if let Some(header_val) = client_header
-            && let Ok(parsed) = SessionId::parse(header_val) {
-                return parsed;
-            }
+            && let Ok(parsed) = SessionId::parse(header_val)
+        {
+            return parsed;
+        }
 
         // If rotate_after_requests <= 1, generate a fresh ID on every request
         if self.rotate_after_requests <= 1 {
@@ -337,4 +345,3 @@ mod tests {
         assert!(req_val >= expected_min.saturating_sub(0x1000 * 5000));
     }
 }
-

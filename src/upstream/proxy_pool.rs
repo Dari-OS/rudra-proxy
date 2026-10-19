@@ -1,7 +1,7 @@
 use crate::config::ProxyConfig;
 use reqwest::Client;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::Duration;
 use tracing::{info, warn};
 
@@ -78,7 +78,9 @@ impl ProxyPool {
                 nodes.len()
             );
         } else if config.enabled {
-            warn!("Proxy support is enabled but no valid proxy URLs were provided; using direct connection");
+            warn!(
+                "Proxy support is enabled but no valid proxy URLs were provided; using direct connection"
+            );
         }
 
         Self {

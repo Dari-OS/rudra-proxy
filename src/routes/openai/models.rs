@@ -1,8 +1,8 @@
 use crate::routes::AppState;
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde_json::json;
 
 /// GET /v1/models
@@ -39,10 +39,7 @@ pub async fn list_models(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /v1/models/{id}
-pub async fn get_model(
-    State(state): State<AppState>,
-    Path(model_id): Path<String>,
-) -> Response {
+pub async fn get_model(State(state): State<AppState>, Path(model_id): Path<String>) -> Response {
     let meta = state.registry.resolve_model(&model_id).await;
     (
         StatusCode::OK,

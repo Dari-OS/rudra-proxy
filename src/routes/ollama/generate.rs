@@ -1,11 +1,11 @@
 use crate::registry::metadata::ModelProtocol;
 use crate::routes::AppState;
-use crate::upstream::payload::{build_opencode_payload, OpenAiChatRequest};
+use crate::upstream::payload::{OpenAiChatRequest, build_opencode_payload};
+use axum::Json;
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use chrono::Utc;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
@@ -64,16 +64,30 @@ pub async fn generate(
             None,
         );
 
-        let response = match state.upstream.dispatch_systemone(&session_id, &sys_payload).await {
+        let response = match state
+            .upstream
+            .dispatch_systemone(&session_id, &sys_payload)
+            .await
+        {
             Ok(res) => res,
-            Err(err) => return (StatusCode::BAD_GATEWAY, Json(json!({"error": err.to_string()}))).into_response(),
+            Err(err) => {
+                return (
+                    StatusCode::BAD_GATEWAY,
+                    Json(json!({"error": err.to_string()})),
+                )
+                    .into_response();
+            }
         };
 
         let status = response.status();
         let body_bytes = response.bytes().await.unwrap_or_default();
         if !status.is_success() {
             let err_text = String::from_utf8_lossy(&body_bytes);
-            return (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(json!({"error": err_text}))).into_response();
+            return (
+                StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(json!({"error": err_text})),
+            )
+                .into_response();
         }
 
         let formatted_text = sys_adapter
@@ -120,7 +134,8 @@ pub async fn generate(
     };
 
     let override_effort = state.registry.get_override_effort(&model_meta.id);
-    let upstream_payload = build_opencode_payload(&openai_req, &model_meta, override_effort.as_deref());
+    let upstream_payload =
+        build_opencode_payload(&openai_req, &model_meta, override_effort.as_deref());
 
     let response = match state
         .upstream

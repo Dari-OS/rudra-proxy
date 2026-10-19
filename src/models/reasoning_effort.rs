@@ -3,8 +3,8 @@ use super::{
 };
 use crate::registry::metadata::{ModelMetadata, ModelProtocol, ReasoningType};
 use crate::upstream::effort::resolve_chat_reasoning_effort;
-use crate::upstream::payload::{normalize_tool_for_chat, OpenAiChatRequest};
-use serde_json::{json, Value};
+use crate::upstream::payload::{OpenAiChatRequest, normalize_tool_for_chat};
+use serde_json::{Value, json};
 
 /// Model adapter for models supporting discrete reasoning effort parameters
 /// (e.g. `space-bunny-free`, `step-5-preview-free`, `exo-free`).
@@ -19,6 +19,7 @@ impl ModelAdapter for ReasoningEffortAdapter {
     fn matches(&self, meta: &ModelMetadata) -> bool {
         (matches!(meta.reasoning, ReasoningType::Effort { .. })
             || meta.id.contains("bunny")
+            || meta.id.contains("beam")
             || meta.id.contains("step-5")
             || meta.id.contains("cat-jam")
             || meta.id.contains("deepseek")
@@ -181,11 +182,23 @@ impl ModelAdapter for ReasoningEffortAdapter {
                     }
                     if let Some(tcs) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
                         for tc in tcs {
-                            let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                            let idx =
+                                tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                             let id = tc.get("id").and_then(|i| i.as_str()).map(|s| s.to_string());
-                            let tool_type = tc.get("type").and_then(|t| t.as_str()).map(|s| s.to_string());
-                            let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).map(|s| s.to_string());
-                            let args_delta = tc.get("function").and_then(|f| f.get("arguments")).and_then(|a| a.as_str()).map(|s| s.to_string());
+                            let tool_type = tc
+                                .get("type")
+                                .and_then(|t| t.as_str())
+                                .map(|s| s.to_string());
+                            let name = tc
+                                .get("function")
+                                .and_then(|f| f.get("name"))
+                                .and_then(|n| n.as_str())
+                                .map(|s| s.to_string());
+                            let args_delta = tc
+                                .get("function")
+                                .and_then(|f| f.get("arguments"))
+                                .and_then(|a| a.as_str())
+                                .map(|s| s.to_string());
                             delta.tool_calls.push(ExtractedToolCallChunk {
                                 index: idx,
                                 id,
@@ -227,9 +240,11 @@ impl ModelAdapter for ReasoningEffortAdapter {
                     {
                         acc.reasoning.push_str(reasoning);
                     }
-                    if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array()) {
+                    if let Some(tool_calls) = delta_obj.get("tool_calls").and_then(|t| t.as_array())
+                    {
                         for tc in tool_calls {
-                            let idx = tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
+                            let idx =
+                                tc.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
                             let entry = acc.tool_calls.entry(idx).or_insert((
                                 String::new(),
                                 "function".to_string(),
