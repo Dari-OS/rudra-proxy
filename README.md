@@ -61,16 +61,16 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | online | 442 ms | 6.8 tok/s |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 5638 ms | 28.0 tok/s |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | online | 1745 ms | 95.9 tok/s |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 625 ms | 4.7 tok/s |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 212 ms | 94.3 tok/s |
-| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 5457 ms | 2.0 tok/s |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 1191 ms | 25.5 tok/s |
-| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 17332 ms | 69.6 tok/s |
-| `nemotron-3.5-super-vl-free` | nemotron-free | `chat_completions` | effort (6) | 1048k | online | 1070 ms | 55.6 tok/s |
-| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | online | 524 ms | 31.3 tok/s |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (403 Forbidden) | - | - |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (403 Forbidden) | - | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (403 Forbidden) | - | - |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (403 Forbidden) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | error (403 Forbidden) | - | - |
+| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | error (403 Forbidden) | - | - |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (403 Forbidden) | - | - |
+| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | error (403 Forbidden) | - | - |
+| `nemotron-3.5-super-vl-free` | nemotron-free | `chat_completions` | effort (6) | 1048k | error (403 Forbidden) | - | - |
+| `space-bunny-free` | space-bunny | `chat_completions` | effort (5) | 1048k | error (403 Forbidden) | - | - |
 <!-- MODEL_TABLE_END -->
 
 ---
