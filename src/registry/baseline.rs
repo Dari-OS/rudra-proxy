@@ -153,10 +153,10 @@ pub fn get_baseline_models() -> HashMap<String, ModelMetadata> {
             owned_by: "opencode".to_string(),
         },
         ModelMetadata {
-            id: "space-bunny-free".to_string(),
-            name: "Space Bunny Free".to_string(),
-            description: "Deep thinking model with multi-tier reasoning effort".to_string(),
-            family: "space-bunny".to_string(),
+            id: "minimax-m3.1-flash-free".to_string(),
+            name: "MiniMax M3.1 Flash Free".to_string(),
+            description: "Frontier multimodal coding model with 1M context window and tunable thinking depth".to_string(),
+            family: "minimax".to_string(),
             protocol: ModelProtocol::ChatCompletions,
             reasoning: ReasoningType::Effort {
                 values: vec![
@@ -167,8 +167,8 @@ pub fn get_baseline_models() -> HashMap<String, ModelMetadata> {
                     "max".to_string(),
                 ],
             },
-            context_limit: 1048576,
-            output_limit: 524288,
+            context_limit: 1000000,
+            output_limit: 512000,
             is_free: true,
             created: 1728424000,
             owned_by: "opencode".to_string(),

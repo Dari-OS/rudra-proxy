@@ -593,6 +593,18 @@ pub fn default_aliases() -> HashMap<String, String> {
         "ling-3.0-flash-fin-free".to_string(),
         "glm-5.3-flash-free".to_string(),
     );
-    map.insert("exo-free".to_string(), "space-bunny-free".to_string());
+    map.insert(
+        "space-bunny-free".to_string(),
+        "minimax-m3.1-flash-free".to_string(),
+    );
+    map.insert(
+        "space-bunny".to_string(),
+        "minimax-m3.1-flash-free".to_string(),
+    );
+    map.insert(
+        "exo-free".to_string(),
+        "minimax-m3.1-flash-free".to_string(),
+    );
+    map.insert("minimax".to_string(), "minimax-m3.1-flash-free".to_string());
     map
 }

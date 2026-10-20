@@ -24,6 +24,7 @@ impl ModelAdapter for ReasoningEffortAdapter {
             || meta.id.contains("cat-jam")
             || meta.id.contains("deepseek")
             || meta.id.contains("glm")
+            || meta.id.contains("minimax")
             || meta.id.contains("alpha")
             || meta.id.contains("super-vl")
             || meta.id.contains("exo"))
