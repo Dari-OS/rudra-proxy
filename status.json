@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-19T08:28:15.154105583+00:00",
+  "updated_at": "2026-10-20T02:47:18.872119004+00:00",
   "status": "operational",
   "gateway": "https://opencode.ai/zen/v1/models",
   "models_count": 10,
@@ -13,8 +13,8 @@
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 434,
-      "tokens_per_sec": 6.9
+      "latency_ms": 437,
+      "tokens_per_sec": 6.8
     },
     {
       "id": "big-pickle",
@@ -25,8 +25,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 3676,
-      "tokens_per_sec": 25.6
+      "latency_ms": 932,
+      "tokens_per_sec": 20.5
     },
     {
       "id": "deepseek-v4.1-flash-free",
@@ -37,8 +37,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 4768,
-      "tokens_per_sec": 82.8
+      "latency_ms": 2531,
+      "tokens_per_sec": 35.9
     },
     {
       "id": "glm-5.3-flash-free",
@@ -49,8 +49,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 1129,
-      "tokens_per_sec": 11.5
+      "latency_ms": 475,
+      "tokens_per_sec": 6.2
     },
     {
       "id": "jev-1.13-free",
@@ -61,8 +61,8 @@
       "context_limit": 131072,
       "output_limit": 16384,
       "status": "online",
-      "latency_ms": 285,
-      "tokens_per_sec": 70.2
+      "latency_ms": 307,
+      "tokens_per_sec": 65.1
     },
     {
       "id": "longcat-2.5-preview-free",
@@ -73,8 +73,8 @@
       "context_limit": 1000000,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 1903,
-      "tokens_per_sec": 1.5
+      "latency_ms": 1507,
+      "tokens_per_sec": 1.6
     },
     {
       "id": "mimo-v2.6-flash-free",
@@ -85,8 +85,20 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 8354,
-      "tokens_per_sec": 24.9
+      "latency_ms": 1582,
+      "tokens_per_sec": 13.1
+    },
+    {
+      "id": "minimax-m3.1-flash-free",
+      "name": "MiniMax M3.1 Flash Free",
+      "provider": "minimax",
+      "protocol": "chat_completions",
+      "reasoning": "effort (5)",
+      "context_limit": 1000000,
+      "output_limit": 512000,
+      "status": "online",
+      "latency_ms": 1255,
+      "tokens_per_sec": 2.4
     },
     {
       "id": "nemotron-3.5-lightning-free",
@@ -97,8 +109,8 @@
       "context_limit": 262144,
       "output_limit": 262144,
       "status": "online",
-      "latency_ms": 330,
-      "tokens_per_sec": 17.5
+      "latency_ms": 307,
+      "tokens_per_sec": 79.8
     },
     {
       "id": "nemotron-3.5-super-vl-free",
@@ -109,20 +121,8 @@
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 1205,
-      "tokens_per_sec": 46.2
-    },
-    {
-      "id": "space-bunny-free",
-      "name": "Space Bunny Free",
-      "provider": "space-bunny",
-      "protocol": "chat_completions",
-      "reasoning": "effort (5)",
-      "context_limit": 1048576,
-      "output_limit": 524288,
-      "status": "online",
-      "latency_ms": 3430,
-      "tokens_per_sec": 69.8
+      "latency_ms": 798,
+      "tokens_per_sec": 81.1
     }
   ]
 }
