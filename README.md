@@ -61,16 +61,16 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | online | 27664 ms | 0.1 tok/s |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 1518 ms | 7.5 tok/s |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 Too Many Requests) | - | - |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 1821 ms | 8.6 tok/s |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 193 ms | 103.6 tok/s |
-| `longcat-2.5-preview-free` | longcat | `chat_completions` | toggle | 1000k | online | 3095 ms | 12.4 tok/s |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 1703 ms | 17.5 tok/s |
-| `minimax-m3.1-flash-free` | minimax | `chat_completions` | effort (5) | 1000k | online | 1167 ms | 42.9 tok/s |
-| `nemotron-3.5-lightning-free` | nemotron-free | `chat_completions` | none | 262k | online | 254 ms | 87.2 tok/s |
-| `nemotron-3.5-super-vl-free` | nemotron-free | `chat_completions` | effort (6) | 1048k | online | 885 ms | 53.6 tok/s |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | online | 545 ms | 5.5 tok/s |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 2091 ms | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | online | 2042 ms | 154.2 tok/s |
+| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (503 Service Unavailable) | - | - |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 616 ms | 4.7 tok/s |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 172 ms | 116.3 tok/s |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 4835 ms | 27.1 tok/s |
+| `minimax-m3.1-flash-free` | minimax | `chat_completions` | effort (5) | 1000k | online | 1047 ms | 2.8 tok/s |
+| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | online | 279 ms | 94.5 tok/s |
+| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | online | 946 ms | 40.0 tok/s |
 <!-- MODEL_TABLE_END -->
 
 ---
