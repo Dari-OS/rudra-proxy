@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T02:41:05.833392636+00:00",
+  "updated_at": "2026-10-22T02:38:45.932699813+00:00",
   "status": "operational",
   "gateway": "https://opencode.ai/zen/v1/models",
   "models_count": 10,
@@ -13,8 +13,8 @@
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 28336,
-      "tokens_per_sec": 0.1
+      "latency_ms": 559,
+      "tokens_per_sec": 5.3
     },
     {
       "id": "big-pickle",
@@ -25,8 +25,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 8367,
-      "tokens_per_sec": 12.4
+      "latency_ms": 1701,
+      "tokens_per_sec": 86.5
     },
     {
       "id": "deepseek-v4.1-flash-free",
@@ -36,7 +36,19 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 Too Many Requests)",
+      "status": "online",
+      "latency_ms": 1520,
+      "tokens_per_sec": 100.6
+    },
+    {
+      "id": "flint-40b-free",
+      "name": "Flint 40B Free",
+      "provider": "flint",
+      "protocol": "chat_completions",
+      "reasoning": "effort (5)",
+      "context_limit": 262144,
+      "output_limit": 65536,
+      "status": "error (503 Service Unavailable)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -48,9 +60,9 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 Too Many Requests)",
-      "latency_ms": null,
-      "tokens_per_sec": null
+      "status": "online",
+      "latency_ms": 521,
+      "tokens_per_sec": 5.6
     },
     {
       "id": "jev-1.13-free",
@@ -61,20 +73,8 @@
       "context_limit": 131072,
       "output_limit": 16384,
       "status": "online",
-      "latency_ms": 305,
-      "tokens_per_sec": 65.6
-    },
-    {
-      "id": "longcat-2.5-preview-free",
-      "name": "LongCat 2.5 Preview Free",
-      "provider": "longcat",
-      "protocol": "chat_completions",
-      "reasoning": "toggle",
-      "context_limit": 1000000,
-      "output_limit": 131072,
-      "status": "online",
-      "latency_ms": 12626,
-      "tokens_per_sec": 3.7
+      "latency_ms": 321,
+      "tokens_per_sec": 62.3
     },
     {
       "id": "mimo-v2.6-flash-free",
@@ -85,8 +85,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 6518,
-      "tokens_per_sec": 32.4
+      "latency_ms": 1632,
+      "tokens_per_sec": 11.9
     },
     {
       "id": "minimax-m3.1-flash-free",
@@ -97,32 +97,32 @@
       "context_limit": 1000000,
       "output_limit": 512000,
       "status": "online",
-      "latency_ms": 2106,
-      "tokens_per_sec": 75.0
+      "latency_ms": 1419,
+      "tokens_per_sec": 2.1
     },
     {
       "id": "nemotron-3.5-lightning-free",
       "name": "Nemotron 3.5 Lightning Free",
-      "provider": "nemotron-free",
+      "provider": "nemotron",
       "protocol": "chat_completions",
       "reasoning": "none",
       "context_limit": 262144,
       "output_limit": 262144,
       "status": "online",
-      "latency_ms": 311,
-      "tokens_per_sec": 61.8
+      "latency_ms": 368,
+      "tokens_per_sec": 36.3
     },
     {
       "id": "nemotron-3.5-super-vl-free",
       "name": "Nemotron 3.5 Super VL Free",
-      "provider": "nemotron-free",
+      "provider": "nemotron",
       "protocol": "chat_completions",
       "reasoning": "effort (6)",
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 738,
-      "tokens_per_sec": 60.0
+      "latency_ms": 860,
+      "tokens_per_sec": 44.1
     }
   ]
 }
