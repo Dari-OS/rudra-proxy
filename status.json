@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-22T02:38:45.932699813+00:00",
+  "updated_at": "2026-10-23T02:42:52.351856416+00:00",
   "status": "operational",
   "gateway": "https://opencode.ai/zen/v1/models",
-  "models_count": 10,
+  "models_count": 9,
   "models": [
     {
       "id": "beam-free",
@@ -13,8 +13,8 @@
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 559,
-      "tokens_per_sec": 5.3
+      "latency_ms": 816,
+      "tokens_per_sec": 3.7
     },
     {
       "id": "big-pickle",
@@ -25,8 +25,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 1701,
-      "tokens_per_sec": 86.5
+      "latency_ms": 1794,
+      "tokens_per_sec": 1.7
     },
     {
       "id": "deepseek-v4.1-flash-free",
@@ -37,8 +37,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 1520,
-      "tokens_per_sec": 100.6
+      "latency_ms": 1586,
+      "tokens_per_sec": 99.5
     },
     {
       "id": "flint-40b-free",
@@ -61,8 +61,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 521,
-      "tokens_per_sec": 5.6
+      "latency_ms": 418,
+      "tokens_per_sec": 120.0
     },
     {
       "id": "jev-1.13-free",
@@ -73,8 +73,8 @@
       "context_limit": 131072,
       "output_limit": 16384,
       "status": "online",
-      "latency_ms": 321,
-      "tokens_per_sec": 62.3
+      "latency_ms": 260,
+      "tokens_per_sec": 76.9
     },
     {
       "id": "mimo-v2.6-flash-free",
@@ -85,20 +85,8 @@
       "context_limit": 200000,
       "output_limit": 32000,
       "status": "online",
-      "latency_ms": 1632,
-      "tokens_per_sec": 11.9
-    },
-    {
-      "id": "minimax-m3.1-flash-free",
-      "name": "MiniMax M3.1 Flash Free",
-      "provider": "minimax",
-      "protocol": "chat_completions",
-      "reasoning": "effort (5)",
-      "context_limit": 1000000,
-      "output_limit": 512000,
-      "status": "online",
-      "latency_ms": 1419,
-      "tokens_per_sec": 2.1
+      "latency_ms": 2079,
+      "tokens_per_sec": 27.2
     },
     {
       "id": "nemotron-3.5-lightning-free",
@@ -109,8 +97,8 @@
       "context_limit": 262144,
       "output_limit": 262144,
       "status": "online",
-      "latency_ms": 368,
-      "tokens_per_sec": 36.3
+      "latency_ms": 405,
+      "tokens_per_sec": 92.0
     },
     {
       "id": "nemotron-3.5-super-vl-free",
@@ -121,8 +109,8 @@
       "context_limit": 1048576,
       "output_limit": 131072,
       "status": "online",
-      "latency_ms": 860,
-      "tokens_per_sec": 44.1
+      "latency_ms": 789,
+      "tokens_per_sec": 61.2
     }
   ]
 }
