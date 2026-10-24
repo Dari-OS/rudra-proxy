@@ -61,15 +61,15 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | online | 782 ms | 3.8 tok/s |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | online | 11712 ms | 25.0 tok/s |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | online | 2526 ms | 127.6 tok/s |
-| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (503 Service Unavailable) | - | - |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | online | 428 ms | 6.9 tok/s |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 185 ms | 108.1 tok/s |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | online | 1709 ms | 26.0 tok/s |
-| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | online | 274 ms | 93.6 tok/s |
-| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | online | 879 ms | 6.9 tok/s |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 Too Many Requests) | - | - |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 Too Many Requests) | - | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 Too Many Requests) | - | - |
+| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 Too Many Requests) | - | - |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (429 Too Many Requests) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | error (429 Too Many Requests) | - | - |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 Too Many Requests) | - | - |
+| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 Too Many Requests) | - | - |
+| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 Too Many Requests) | - | - |
 <!-- MODEL_TABLE_END -->
 
 ---
