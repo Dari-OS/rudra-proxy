@@ -7,7 +7,7 @@ use tracing::{info, warn};
 pub const OPENCODE_ZEN_MODELS_URL: &str = "https://opencode.ai/zen/v1/models";
 pub const OPENCODE_CATALOG_URL: &str = "https://models.opencode.ai/api.json";
 pub const DEFAULT_USER_AGENT: &str =
-    "opencode/1.19.3 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.2";
+    "opencode/1.19.4 ai-sdk/provider-utils/4.0.23 runtime/bun/1.4.4";
 
 #[derive(Deserialize)]
 struct ZenModelsResponse {

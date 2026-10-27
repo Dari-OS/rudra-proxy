@@ -135,4 +135,23 @@ impl ProxyPool {
     pub fn active_proxies_count(&self) -> usize {
         self.nodes.len()
     }
+
+    /// Force rotates to the next proxy node in the pool.
+    pub fn rotate_now(&self) {
+        if !self.enabled || self.nodes.is_empty() {
+            return;
+        }
+        let total_nodes = self.nodes.len();
+        let current_idx = self.current_index.load(Ordering::Relaxed) % total_nodes;
+        let next_idx = (current_idx + 1) % total_nodes;
+        self.current_index.store(next_idx, Ordering::Relaxed);
+        self.request_counter.store(0, Ordering::Relaxed);
+        let current_url = &self.nodes[current_idx].url;
+        let next_url = &self.nodes[next_idx].url;
+        info!(
+            switched_from = %current_url,
+            switched_to = %next_url,
+            "Forced failover rotation to next outbound proxy"
+        );
+    }
 }

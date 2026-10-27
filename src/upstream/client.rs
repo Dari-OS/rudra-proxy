@@ -4,7 +4,7 @@ use crate::session::{RequestId, SessionId};
 use crate::upstream::proxy_pool::ProxyPool;
 use reqwest::Response;
 use serde_json::Value;
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub const OPENCODE_RESPONSES_URL: &str = "https://opencode.ai/inference/v1/responses";
 pub const OPENCODE_CHAT_COMPLETIONS_URL: &str = "https://opencode.ai/inference/v1/chat/completions";
@@ -55,35 +55,66 @@ impl UpstreamClient {
             ModelProtocol::SystemOne => OPENCODE_SYSTEMONE_URL,
         };
 
-        let (client, proxy_url) = self.proxy_pool.get_client();
-        if let Some(ref p) = proxy_url {
-            debug!(proxy = %p, target = %target_url, "Routing upstream request through proxy");
-        }
-
-        let auth_header = format!("Bearer {}", self.upstream_api_key);
-        let req_id = match request_id {
-            Some(id) if !id.is_empty() => id.to_string(),
-            _ => RequestId::generate().to_string(),
+        let max_attempts = if self.proxy_pool.active_proxies_count() > 1 {
+            self.proxy_pool.active_proxies_count()
+        } else {
+            1
         };
-        let proj_id = project_id
-            .filter(|p| !p.is_empty())
-            .unwrap_or(&self.project_id);
 
-        client
-            .post(target_url)
-            .header("Content-Type", "application/json")
-            .header("User-Agent", DEFAULT_USER_AGENT)
-            .header("x-opencode-client", "cli")
-            .header("x-opencode-session", session_id.as_str())
-            .header("x-opencode-session-id", session_id.as_str())
-            .header("x-session-affinity", session_id.as_str())
-            .header("X-Session-Id", session_id.as_str())
-            .header("x-opencode-request", &req_id)
-            .header("x-opencode-project", proj_id)
-            .header("Authorization", &auth_header)
-            .json(payload)
-            .send()
-            .await
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            let (client, proxy_url) = self.proxy_pool.get_client();
+            if let Some(ref p) = proxy_url {
+                debug!(
+                    proxy = %p,
+                    target = %target_url,
+                    attempt = attempts,
+                    "Routing upstream request through proxy"
+                );
+            }
+
+            let auth_header = format!("Bearer {}", self.upstream_api_key);
+            let req_id = match request_id {
+                Some(id) if !id.is_empty() => id.to_string(),
+                _ => RequestId::generate().to_string(),
+            };
+            let proj_id = project_id
+                .filter(|p| !p.is_empty())
+                .unwrap_or(&self.project_id);
+
+            let resp = client
+                .post(target_url)
+                .header("Content-Type", "application/json")
+                .header("User-Agent", DEFAULT_USER_AGENT)
+                .header("x-opencode-client", "cli")
+                .header("x-opencode-session", session_id.as_str())
+                .header("x-opencode-session-id", session_id.as_str())
+                .header("x-session-affinity", session_id.as_str())
+                .header("X-Session-Id", session_id.as_str())
+                .header("x-opencode-request", &req_id)
+                .header("x-opencode-project", proj_id)
+                .header("Authorization", &auth_header)
+                .json(payload)
+                .send()
+                .await;
+
+            match resp {
+                Ok(response)
+                    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS
+                        && attempts < max_attempts =>
+                {
+                    warn!(
+                        attempt = attempts,
+                        max_attempts = max_attempts,
+                        "Upstream returned HTTP 429 (rate limit). Rotating proxy pool node and retrying..."
+                    );
+                    self.proxy_pool.rotate_now();
+                    continue;
+                }
+                other => return other,
+            }
+        }
     }
 
     /// Dispatches a TypeSafe AI / System One evaluation request with active proxy routing.
@@ -104,35 +135,65 @@ impl UpstreamClient {
         request_id: Option<&str>,
         project_id: Option<&str>,
     ) -> Result<Response, reqwest::Error> {
-        let (client, proxy_url) = self.proxy_pool.get_client();
-        if let Some(ref p) = proxy_url {
-            debug!(proxy = %p, "Routing upstream System One request through proxy");
-        }
-
-        let auth_header = format!("Bearer {}", self.upstream_api_key);
-        let req_id = match request_id {
-            Some(id) if !id.is_empty() => id.to_string(),
-            _ => RequestId::generate().to_string(),
+        let max_attempts = if self.proxy_pool.active_proxies_count() > 1 {
+            self.proxy_pool.active_proxies_count()
+        } else {
+            1
         };
-        let proj_id = project_id
-            .filter(|p| !p.is_empty())
-            .unwrap_or(&self.project_id);
 
-        client
-            .post(OPENCODE_SYSTEMONE_URL)
-            .header("Content-Type", "application/json")
-            .header("User-Agent", DEFAULT_USER_AGENT)
-            .header("x-opencode-client", "cli")
-            .header("x-opencode-session", session_id.as_str())
-            .header("x-opencode-session-id", session_id.as_str())
-            .header("x-session-affinity", session_id.as_str())
-            .header("X-Session-Id", session_id.as_str())
-            .header("x-opencode-request", &req_id)
-            .header("x-opencode-project", proj_id)
-            .header("Authorization", &auth_header)
-            .json(payload)
-            .send()
-            .await
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            let (client, proxy_url) = self.proxy_pool.get_client();
+            if let Some(ref p) = proxy_url {
+                debug!(
+                    proxy = %p,
+                    attempt = attempts,
+                    "Routing upstream System One request through proxy"
+                );
+            }
+
+            let auth_header = format!("Bearer {}", self.upstream_api_key);
+            let req_id = match request_id {
+                Some(id) if !id.is_empty() => id.to_string(),
+                _ => RequestId::generate().to_string(),
+            };
+            let proj_id = project_id
+                .filter(|p| !p.is_empty())
+                .unwrap_or(&self.project_id);
+
+            let resp = client
+                .post(OPENCODE_SYSTEMONE_URL)
+                .header("Content-Type", "application/json")
+                .header("User-Agent", DEFAULT_USER_AGENT)
+                .header("x-opencode-client", "cli")
+                .header("x-opencode-session", session_id.as_str())
+                .header("x-opencode-session-id", session_id.as_str())
+                .header("x-session-affinity", session_id.as_str())
+                .header("X-Session-Id", session_id.as_str())
+                .header("x-opencode-request", &req_id)
+                .header("x-opencode-project", proj_id)
+                .header("Authorization", &auth_header)
+                .json(payload)
+                .send()
+                .await;
+
+            match resp {
+                Ok(response)
+                    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS
+                        && attempts < max_attempts =>
+                {
+                    warn!(
+                        attempt = attempts,
+                        max_attempts = max_attempts,
+                        "Upstream System One returned HTTP 429. Rotating proxy pool node and retrying..."
+                    );
+                    self.proxy_pool.rotate_now();
+                    continue;
+                }
+                other => return other,
+            }
+        }
     }
 
     pub fn proxy_pool(&self) -> &ProxyPool {

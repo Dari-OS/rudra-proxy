@@ -60,6 +60,27 @@ pub fn get_baseline_models() -> HashMap<String, ModelMetadata> {
             owned_by: "opencode".to_string(),
         },
         ModelMetadata {
+            id: "flint-40b-free".to_string(),
+            name: "Flint 40B Free".to_string(),
+            description: "Open-weight mixture-of-experts model with about 2.5B active parameters for local coding agents".to_string(),
+            family: "flint".to_string(),
+            protocol: ModelProtocol::ChatCompletions,
+            reasoning: ReasoningType::Effort {
+                values: vec![
+                    "low".to_string(),
+                    "medium".to_string(),
+                    "high".to_string(),
+                    "xhigh".to_string(),
+                    "max".to_string(),
+                ],
+            },
+            context_limit: 262144,
+            output_limit: 65536,
+            is_free: true,
+            created: 1729500000,
+            owned_by: "opencode".to_string(),
+        },
+        ModelMetadata {
             id: "glm-5.3-flash-free".to_string(),
             name: "GLM-5.3-Flash Free".to_string(),
             description: "Zhipu AI high-speed reasoning model".to_string(),

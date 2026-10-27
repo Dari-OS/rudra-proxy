@@ -81,12 +81,31 @@ async fn probe_single_model(
             }
             Ok(res) => {
                 let status_code = res.status();
+                let headers = res.headers().clone();
                 let err_body = res.text().await.unwrap_or_default();
-                eprintln!(
-                    "[!] SystemOne probe failed for {}: HTTP {status_code} - {err_body}",
-                    model.id
-                );
-                (format!("error ({status_code})"), None, None)
+                if status_code == reqwest::StatusCode::TOO_MANY_REQUESTS
+                    && err_body.contains("FreeUsageLimitError")
+                {
+                    let retry_secs = headers
+                        .get("retry-after")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("resets at 00:00 UTC");
+                    eprintln!(
+                        "[!] SystemOne probe failed for {}: HTTP 429 FreeUsageLimitError (daily free quota reached, resets in {retry_secs}s)",
+                        model.id
+                    );
+                    (
+                        format!("error (429 free limit, resets in {retry_secs}s)"),
+                        None,
+                        None,
+                    )
+                } else {
+                    eprintln!(
+                        "[!] SystemOne probe failed for {}: HTTP {status_code} - {err_body}",
+                        model.id
+                    );
+                    (format!("error ({status_code})"), None, None)
+                }
             }
             Err(e) => {
                 eprintln!("[!] SystemOne probe network error for {}: {e}", model.id);
@@ -173,12 +192,31 @@ async fn probe_single_model(
             }
             Ok(res) => {
                 let status_code = res.status();
+                let headers = res.headers().clone();
                 let err_body = res.text().await.unwrap_or_default();
-                eprintln!(
-                    "[!] Chat probe failed for {}: HTTP {status_code} - {err_body}",
-                    model.id
-                );
-                (format!("error ({status_code})"), None, None)
+                if status_code == reqwest::StatusCode::TOO_MANY_REQUESTS
+                    && err_body.contains("FreeUsageLimitError")
+                {
+                    let retry_secs = headers
+                        .get("retry-after")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("resets at 00:00 UTC");
+                    eprintln!(
+                        "[!] Chat probe failed for {}: HTTP 429 FreeUsageLimitError (daily free quota reached, resets in {retry_secs}s)",
+                        model.id
+                    );
+                    (
+                        format!("error (429 free limit, resets in {retry_secs}s)"),
+                        None,
+                        None,
+                    )
+                } else {
+                    eprintln!(
+                        "[!] Chat probe failed for {}: HTTP {status_code} - {err_body}",
+                        model.id
+                    );
+                    (format!("error ({status_code})"), None, None)
+                }
             }
             Err(e) => {
                 eprintln!("[!] Chat probe network error for {}: {e}", model.id);

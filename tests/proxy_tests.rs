@@ -2,7 +2,7 @@ use axum::body::to_bytes;
 use axum::http::{Request, StatusCode};
 use rudra_proxy::config::{AppConfig, CliArgs, ProxyConfig, ProxyNodeConfig};
 use rudra_proxy::registry::ModelRegistry;
-use rudra_proxy::registry::metadata::ModelProtocol;
+use rudra_proxy::registry::metadata::{ModelProtocol, ReasoningType};
 use rudra_proxy::routes::{AppState, create_router};
 use rudra_proxy::session::SessionManager;
 use rudra_proxy::upstream::payload::{
@@ -643,4 +643,43 @@ async fn test_custom_harness_tools_preservation() {
     assert_eq!(auto_tools.len(), 2);
     assert!(auto_tools.iter().any(|t| t["function"]["name"] == "bash"));
     assert!(auto_tools.iter().any(|t| t["function"]["name"] == "read"));
+}
+
+#[tokio::test]
+async fn test_proxy_pool_rotate_now_and_flint_model() {
+    let client = reqwest::Client::new();
+    let config = AppConfig::load(make_test_cli_args());
+    let registry = ModelRegistry::new(client.clone(), &config);
+
+    // Verify flint-40b-free model resolution from baseline
+    let flint = registry.resolve_model("flint-40b-free").await;
+    assert_eq!(flint.id, "flint-40b-free");
+    assert_eq!(flint.protocol, ModelProtocol::ChatCompletions);
+    assert!(matches!(flint.reasoning, ReasoningType::Effort { .. }));
+
+    // Verify ProxyPool::rotate_now behavior
+    let proxy_cfg = rudra_proxy::config::ProxyConfig {
+        enabled: true,
+        proxies: vec![
+            "http://127.0.0.1:8081".to_string(),
+            "http://127.0.0.1:8082".to_string(),
+        ],
+        switch_after_requests: 10,
+        list: vec![],
+    };
+    let pool = rudra_proxy::upstream::proxy_pool::ProxyPool::new(&proxy_cfg, client);
+    assert_eq!(pool.active_proxies_count(), 2);
+
+    let (_, proxy1) = pool.get_client();
+    assert_eq!(proxy1.as_deref(), Some("http://127.0.0.1:8081"));
+
+    // Force rotation on rate limit
+    pool.rotate_now();
+    let (_, proxy2) = pool.get_client();
+    assert_eq!(proxy2.as_deref(), Some("http://127.0.0.1:8082"));
+
+    // Rotate again back to first
+    pool.rotate_now();
+    let (_, proxy3) = pool.get_client();
+    assert_eq!(proxy3.as_deref(), Some("http://127.0.0.1:8081"));
 }

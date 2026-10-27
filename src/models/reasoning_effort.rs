@@ -27,6 +27,7 @@ impl ModelAdapter for ReasoningEffortAdapter {
             || meta.id.contains("minimax")
             || meta.id.contains("alpha")
             || meta.id.contains("super-vl")
+            || meta.id.contains("flint")
             || meta.id.contains("exo"))
             && meta.protocol == ModelProtocol::ChatCompletions
     }
