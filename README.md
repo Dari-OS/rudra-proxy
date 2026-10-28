@@ -61,15 +61,15 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 Too Many Requests) | - | - |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 Too Many Requests) | - | - |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 Too Many Requests) | - | - |
-| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 Too Many Requests) | - | - |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (429 Too Many Requests) | - | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | error (429 Too Many Requests) | - | - |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 Too Many Requests) | - | - |
-| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 Too Many Requests) | - | - |
-| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 Too Many Requests) | - | - |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 free limit, resets in 74638s) | - | - |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 free limit, resets in 74638s) | - | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 74638s) | - | - |
+| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 free limit, resets in 74638s) | - | - |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 74638s) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 206 ms | 97.1 tok/s |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 free limit, resets in 74638s) | - | - |
+| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 free limit, resets in 74638s) | - | - |
+| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 74638s) | - | - |
 <!-- MODEL_TABLE_END -->
 
 ---
