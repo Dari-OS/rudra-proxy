@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-29T03:40:54.032266912+00:00",
-  "status": "operational",
+  "updated_at": "2026-10-30T03:43:31.326089255+00:00",
+  "status": "degraded",
   "gateway": "https://opencode.ai/zen/v1/models",
-  "models_count": 9,
+  "models_count": 8,
   "models": [
     {
       "id": "beam-free",
@@ -12,7 +12,7 @@
       "reasoning": "effort (5)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -24,7 +24,7 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -36,7 +36,7 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 73146s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -48,7 +48,7 @@
       "reasoning": "effort (5)",
       "context_limit": 262144,
       "output_limit": 65536,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -60,21 +60,9 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
-    },
-    {
-      "id": "jev-1.13-free",
-      "name": "jev-1.13-free",
-      "provider": "jev",
-      "protocol": "systemone",
-      "reasoning": "none",
-      "context_limit": 131072,
-      "output_limit": 16384,
-      "status": "online",
-      "latency_ms": 177,
-      "tokens_per_sec": 113.0
     },
     {
       "id": "mimo-v2.6-flash-free",
@@ -84,7 +72,7 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -96,7 +84,7 @@
       "reasoning": "none",
       "context_limit": 262144,
       "output_limit": 262144,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -108,7 +96,7 @@
       "reasoning": "effort (6)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 73147s)",
+      "status": "error (429 free limit, resets in 72989s)",
       "latency_ms": null,
       "tokens_per_sec": null
     }
