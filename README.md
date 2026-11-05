@@ -61,16 +61,16 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 free limit, resets in 71617s) | - | - |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 free limit, resets in 71617s) | - | - |
-| `crouton-alpha-free` | opencode | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 71617s) | - | - |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 71617s) | - | - |
-| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 free limit, resets in 71617s) | - | - |
-| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 71617s) | - | - |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 free limit, resets in 71617s) | - | - |
-| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 free limit, resets in 71617s) | - | - |
-| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 71617s) | - | - |
-| `pulse-alpha-free` | opencode | `chat_completions` | effort (3) | 1048k | error (429 free limit, resets in 71617s) | - | - |
+| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 free limit, resets in 70352s) | - | - |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 free limit, resets in 70352s) | - | - |
+| `crouton-alpha-free` | opencode | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 70352s) | - | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 70352s) | - | - |
+| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 free limit, resets in 70352s) | - | - |
+| `glm-5.3-flash-free` | glm-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 70352s) | - | - |
+| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 free limit, resets in 70352s) | - | - |
+| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 free limit, resets in 70352s) | - | - |
+| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 70352s) | - | - |
+| `pulse-alpha-free` | opencode | `chat_completions` | effort (3) | 1048k | error (429 free limit, resets in 70352s) | - | - |
 <!-- MODEL_TABLE_END -->
 
 ---
