@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-11-09T03:50:52.170524474+00:00",
+  "updated_at": "2026-11-10T05:25:00.696555778+00:00",
   "status": "degraded",
   "gateway": "https://opencode.ai/zen/v1/models",
-  "models_count": 11,
+  "models_count": 12,
   "models": [
     {
       "id": "beam-free",
@@ -12,7 +12,7 @@
       "reasoning": "effort (5)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -24,19 +24,7 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 72549s)",
-      "latency_ms": null,
-      "tokens_per_sec": null
-    },
-    {
-      "id": "crouton-alpha-free",
-      "name": "Crouton Alpha Free",
-      "provider": "opencode",
-      "protocol": "chat_completions",
-      "reasoning": "effort (6)",
-      "context_limit": 1048576,
-      "output_limit": 270000,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -48,7 +36,7 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -60,7 +48,7 @@
       "reasoning": "effort (5)",
       "context_limit": 262144,
       "output_limit": 65536,
-      "status": "error (429 free limit, resets in 72548s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -72,7 +60,7 @@
       "reasoning": "effort (3)",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -84,7 +72,7 @@
       "reasoning": "none",
       "context_limit": 262144,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -96,7 +84,19 @@
       "reasoning": "effort (6)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
+      "latency_ms": null,
+      "tokens_per_sec": null
+    },
+    {
+      "id": "longcat-2.5-free",
+      "name": "LongCat 2.5 Free",
+      "provider": "longcat",
+      "protocol": "chat_completions",
+      "reasoning": "toggle",
+      "context_limit": 1000000,
+      "output_limit": 262144,
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -108,7 +108,19 @@
       "reasoning": "none",
       "context_limit": 200000,
       "output_limit": 32000,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
+      "latency_ms": null,
+      "tokens_per_sec": null
+    },
+    {
+      "id": "minimax-m3.1-flash-free",
+      "name": "MiniMax M3.1 Flash Free",
+      "provider": "minimax",
+      "protocol": "chat_completions",
+      "reasoning": "effort (5)",
+      "context_limit": 1000000,
+      "output_limit": 512000,
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -120,7 +132,7 @@
       "reasoning": "none",
       "context_limit": 262144,
       "output_limit": 262144,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     },
@@ -132,7 +144,7 @@
       "reasoning": "effort (6)",
       "context_limit": 1048576,
       "output_limit": 131072,
-      "status": "error (429 free limit, resets in 72549s)",
+      "status": "error (429 free limit, resets in 66900s)",
       "latency_ms": null,
       "tokens_per_sec": null
     }
