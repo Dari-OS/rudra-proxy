@@ -3,7 +3,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use chrono::Utc;
+use jiff::Timestamp;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -17,7 +17,7 @@ pub struct ShowRequest {
 pub async fn list_tags(State(state): State<AppState>) -> impl IntoResponse {
     let models = state.registry.list_models().await;
     let aliases = state.registry.get_aliases().await;
-    let now_iso = Utc::now().to_rfc3339();
+    let now_iso = Timestamp::now().to_string();
 
     let mut ollama_models = Vec::new();
 

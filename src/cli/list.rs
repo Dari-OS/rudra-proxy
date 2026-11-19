@@ -6,7 +6,7 @@ use crate::session::SessionId;
 use crate::upstream::client::UpstreamClient;
 use crate::upstream::payload::{OpenAiChatRequest, build_opencode_payload};
 use crate::upstream::proxy_pool::ProxyPool;
-use chrono::Utc;
+use jiff::Timestamp;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use futures::future::join_all;
@@ -334,7 +334,7 @@ pub async fn execute(args: ListArgs) -> Result<(), Box<dyn std::error::Error>> {
         ListFormat::Json => {
             let any_online = model_list.iter().any(|m| m.status == "online");
             let output = FullStatusOutput {
-                updated_at: Utc::now().to_rfc3339(),
+                updated_at: Timestamp::now().to_string(),
                 status: if any_online || (!args.live && catalog_synced) {
                     "operational".to_string()
                 } else if !args.live {

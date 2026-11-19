@@ -8,7 +8,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Runtime Stage
-FROM alpine:3.21
+FROM alpine:3.24
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/release/rudra /usr/local/bin/rudra

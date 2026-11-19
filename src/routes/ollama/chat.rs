@@ -6,7 +6,7 @@ use axum::body::Body;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use chrono::Utc;
+use jiff::Timestamp;
 use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use serde::Deserialize;
@@ -104,7 +104,7 @@ pub async fn chat(
 
         let resp_json = json!({
             "model": payload.model,
-            "created_at": Utc::now().to_rfc3339(),
+            "created_at": Timestamp::now().to_string(),
             "message": { "role": "assistant", "content": formatted_text },
             "done": true,
             "total_duration": 1200000000u64,
@@ -185,7 +185,7 @@ pub async fn chat(
                             if event.data == "[DONE]" {
                                 let final_chunk = json!({
                                     "model": model_tag,
-                                    "created_at": Utc::now().to_rfc3339(),
+                                    "created_at": Timestamp::now().to_string(),
                                     "message": { "role": "assistant", "content": "" },
                                     "done": true,
                                     "total_duration": 1200000000u64,
@@ -213,7 +213,7 @@ pub async fn chat(
                             if !delta_text.is_empty() {
                                 let chunk = json!({
                                     "model": model_tag,
-                                    "created_at": Utc::now().to_rfc3339(),
+                                    "created_at": Timestamp::now().to_string(),
                                     "message": {
                                         "role": "assistant",
                                         "content": delta_text
@@ -237,7 +237,7 @@ pub async fn chat(
             if !sent_done && !had_error {
                 let final_chunk = json!({
                     "model": model_tag,
-                    "created_at": Utc::now().to_rfc3339(),
+                    "created_at": Timestamp::now().to_string(),
                     "message": { "role": "assistant", "content": "" },
                     "done": true,
                     "total_duration": 1200000000u64,
@@ -301,7 +301,7 @@ pub async fn chat(
         let finish_reason = acc.reported_finish_reason.as_deref().unwrap_or("stop");
         let resp_json = json!({
             "model": model_tag,
-            "created_at": Utc::now().to_rfc3339(),
+            "created_at": Timestamp::now().to_string(),
             "message": msg_obj,
             "done": true,
             "done_reason": finish_reason,
