@@ -61,18 +61,18 @@ The catalog below is dynamically monitored by our CI/CD healthcheck worker, send
 <!-- MODEL_TABLE_START -->
 | Model Identifier | Provider | Protocol | Reasoning | Context Window | Status | Latency | Speed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `beam-free` | beam | `chat_completions` | effort (5) | 1048k | error (429 free limit, resets in 68302s) | - | - |
-| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 free limit, resets in 68302s) | - | - |
-| `deepseek-v4.1-flash-free` | deepseek-flash | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 68302s) | - | - |
-| `flint-40b-free` | flint | `chat_completions` | effort (5) | 262k | error (429 free limit, resets in 68302s) | - | - |
-| `hy4-flash-free` | Hy | `chat_completions` | effort (2) | 1048k | error (429 free limit, resets in 68302s) | - | - |
-| `iceman-free` | opencode | `chat_completions` | none | 262k | error (429 free limit, resets in 68302s) | - | - |
-| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 183 ms | 109.3 tok/s |
-| `longcat-2.5-free` | longcat | `chat_completions` | toggle | 1000k | error (429 free limit, resets in 68302s) | - | - |
-| `mimo-v2.6-flash-free` | mimo | `chat_completions` | none | 200k | error (429 free limit, resets in 68302s) | - | - |
-| `nemotron-3.5-lightning-free` | nemotron | `chat_completions` | none | 262k | error (429 free limit, resets in 68302s) | - | - |
-| `nemotron-3.5-super-vl-free` | nemotron | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 68302s) | - | - |
-| `tidepool-alpha-free` | opencode | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 68302s) | - | - |
+| `beam-free` | beam-free | `chat_completions` | effort (5) | 1048k | error (429 free limit, resets in 68628s) | - | - |
+| `big-pickle` | big-pickle | `chat_completions` | none | 200k | error (429 free limit, resets in 68628s) | - | - |
+| `deepseek-v4.1-flash-free` | deepseek-flash-free | `chat_completions` | effort (3) | 200k | error (429 free limit, resets in 68628s) | - | - |
+| `flint-40b-free` | flint-free | `chat_completions` | effort (5) | 262k | error (429 free limit, resets in 68628s) | - | - |
+| `hy4-flash-free` | hy-flash-free | `chat_completions` | effort (2) | 1048k | error (429 free limit, resets in 68628s) | - | - |
+| `iceman-free` | opencode | `chat_completions` | none | 262k | error (429 free limit, resets in 68628s) | - | - |
+| `jev-1.13-free` | jev | `systemone` | none | 131k | online | 122 ms | 163.9 tok/s |
+| `longcat-2.5-free` | longcat-free | `chat_completions` | toggle | 1000k | error (429 free limit, resets in 68628s) | - | - |
+| `mimo-v2.6-flash-free` | mimo-flash-free | `chat_completions` | none | 200k | error (429 free limit, resets in 68628s) | - | - |
+| `nemotron-3.5-lightning-free` | nemotron-lightning-free | `chat_completions` | none | 262k | error (429 free limit, resets in 68628s) | - | - |
+| `nemotron-3.5-super-vl-free` | nemotron-super-free | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 68628s) | - | - |
+| `tidepool-alpha-free` | opencode | `chat_completions` | effort (6) | 1048k | error (429 free limit, resets in 68628s) | - | - |
 <!-- MODEL_TABLE_END -->
 
 ---
